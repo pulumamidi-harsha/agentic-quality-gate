@@ -11,59 +11,61 @@ SonarQube replacement for pull requests: Semgrep hotspots, duplication %, comple
 
 ---
 
-## For developers: check quality in your IDE
+## For developers — one command per app
 
-Use **MCP + Agent** (Cursor or VS Code). One install. No admin. **Do not clone this repo.**
+Use **MCP + Agent** in Cursor or VS Code. **Do not clone this hub.**
 
-### Step 1 — Install once (any laptop)
+From your **application** repo (example: `dso-os-frontend`):
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/pulumamidi-harsha/agentic-quality-gate/main/scripts/install-ide.sh | bash
+cd /path/to/dso-os-frontend
+curl -fsSL https://raw.githubusercontent.com/pulumamidi-harsha/agentic-quality-gate/main/scripts/install-app.sh | bash
 ```
 
-Then **restart** your IDE.
+That single command:
 
-### Step 2 — Run the gate on your app
+1. Installs the hub under `~/.cursor/agentic-quality-gate`
+2. Registers Cursor MCP
+3. Writes `.vscode/mcp.json` in **this** app (VS Code ready)
+4. Installs a **git pre-push hook** so the gate runs before every push
+5. Adds the PR workflow file if missing (`.github/workflows/quality-gate.yml`)
 
-Open your **application** repo (not this hub). In Agent chat, say:
+Then **restart** the IDE on that app folder and ask Agent:
 
 ```text
 Run the quality gate on my changes
 ```
 
-| IDE | Extra step (once per app, VS Code only) |
-|-----|----------------------------------------|
-| **Cursor** | None — MCP is already registered |
-| **VS Code** | Copy `~/.cursor/agentic-quality-gate/examples/vscode-mcp.json` to your app’s `.vscode/mcp.json`, then restart |
+Agent streams a live log in chat (like a build), then explains findings (what / why / how to fix).
 
-### Step 3 — Fix what Agent reports
+### Another app later?
 
-Agent calls the quality-gate MCP tool and explains findings (what / why / how to fix). Same engines as PR CI for Semgrep, duplication %, and complexity. Coverage stays CI-only.
+Same one-liner from that repo’s root. No extra copy/paste steps.
 
-To update the install later, run the same `curl … | bash` again.
+### Push / PR (automatic)
 
----
+| When | What runs |
+|------|-----------|
+| **git push** | Local pre-push hook → same engines as CI (`--strict`) |
+| **Pull request** | GitHub `PR Quality Gate` workflow (merge authority) |
 
-## For app repos: PR CI (merge authority)
-
-Add a thin workflow that calls this hub — see [`examples/caller-workflow.yml`](examples/caller-workflow.yml).
-
-Pin `uses:` and `pipeline_ref` to a **full commit SHA**. Keep that workflow even when developers use MCP locally; GitHub remains the merge authority.
-
-Skip labels (CI): `skip-quality-gate`, `skip-ai-review`, or `no-review`.
+Skip the local hook once (not recommended): `git push --no-verify`.  
+CI on the PR still runs. Pin the workflow `uses:` / `pipeline_ref` to a **full SHA** before production.
 
 ---
 
 ## What runs where
 
-| Check | IDE (MCP + Agent) | GitHub PR |
-|-------|-------------------|-----------|
-| Semgrep hotspots | yes | yes |
-| Duplication % | yes | yes |
-| Complexity | yes | yes |
-| Coverage | no | when `lcov` is present |
-| Line comments on the PR | no (chat only) | yes |
+| Check | IDE (MCP + Agent) | git push (hook) | GitHub PR |
+|-------|-------------------|-----------------|-----------|
+| Semgrep hotspots | yes | yes | yes |
+| Duplication % | yes | yes | yes |
+| Complexity | yes | yes | yes |
+| Coverage | no | no | when `lcov` is present |
+| Line comments on the PR | no (chat) | no | yes |
 
 Languages and stacks: TypeScript/JavaScript/React/Node, Python, Go, Java/Spring, Kotlin, C#, Ruby, PHP, Rust, Terraform, Docker, Kubernetes/Helm, Ansible, Bash, SQL, and more.
 
-Policy lives in `config/packages/default.yml`, `config/packages/default/rules/`, and `config/quality-gate.yml` (`AGENTIC_GATE_MODE=advisory|soft_fail|hard_fail`). CI fails closed if an enabled scanner cannot run.
+Policy: `config/packages/default.yml`, `config/packages/default/rules/`, `config/quality-gate.yml` (`AGENTIC_GATE_MODE=advisory|soft_fail|hard_fail`). CI fails closed if an enabled scanner cannot run.
+
+Skip labels (CI): `skip-quality-gate`, `skip-ai-review`, or `no-review`.

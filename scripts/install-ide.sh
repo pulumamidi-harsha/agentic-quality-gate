@@ -143,14 +143,16 @@ path.write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8")
 print(f"  Cursor MCP → {path}")
 PY
 
-# VS Code template (servers key) for apps / user to copy
-mkdir -p "${DEST}/examples"
-python3 - "$DEST" "$CMD" "$ARGS_JSON" <<'PY'
+# VS Code MCP config (servers key)
+write_vscode_mcp() {
+  local out_path="$1"
+  mkdir -p "$(dirname "$out_path")"
+  python3 - "$out_path" "$CMD" "$ARGS_JSON" "$DEST" <<'PY'
 import json, sys
 from pathlib import Path
-dest, command, args_json = sys.argv[1:4]
+
+out_path, command, args_json, hub = sys.argv[1:5]
 args = json.loads(args_json)
-hub = dest
 vscode = {
     "servers": {
         "agentic-quality-gate": {
@@ -164,24 +166,77 @@ vscode = {
         }
     }
 }
-out = Path(dest) / "examples" / "vscode-mcp.json"
-out.write_text(json.dumps(vscode, indent=2) + "\n", encoding="utf-8")
-print(f"  VS Code template → {out}")
+path = Path(out_path)
+path.parent.mkdir(parents=True, exist_ok=True)
+path.write_text(json.dumps(vscode, indent=2) + "\n", encoding="utf-8")
+print(f"  VS Code MCP → {path}")
 PY
+}
+
+mkdir -p "${DEST}/examples"
+write_vscode_mcp "${DEST}/examples/vscode-mcp.json"
+
+# When install-app.sh set AGENTIC_APP_ROOT: wire THIS app in one shot
+APP_ROOT="${AGENTIC_APP_ROOT:-}"
+if [[ -n "$APP_ROOT" && -d "$APP_ROOT/.git" ]]; then
+  echo "  Wiring app repo: ${APP_ROOT}"
+  write_vscode_mcp "${APP_ROOT}/.vscode/mcp.json"
+
+  # Optional Cursor project skill (auto-hint for Agent)
+  if [[ -f "${DEST}/examples/cursor-skill/SKILL.md" ]]; then
+    mkdir -p "${APP_ROOT}/.cursor/skills/quality-gate"
+    cp "${DEST}/examples/cursor-skill/SKILL.md" \
+      "${APP_ROOT}/.cursor/skills/quality-gate/SKILL.md"
+    echo "  Cursor skill → ${APP_ROOT}/.cursor/skills/quality-gate/SKILL.md"
+  fi
+
+  # pre-push hook — runs gate before every push (mandatory locally)
+  HOOK_DIR="${APP_ROOT}/.git/hooks"
+  HOOK="${HOOK_DIR}/pre-push"
+  mkdir -p "$HOOK_DIR"
+  if [[ -f "$HOOK" ]] && ! grep -q 'agentic-quality-gate' "$HOOK" 2>/dev/null; then
+    cp "$HOOK" "${HOOK}.bak.$(date +%Y%m%d%H%M%S)"
+    echo "  Backed up existing pre-push → ${HOOK}.bak.*"
+  fi
+  cat > "$HOOK" <<HOOK
+#!/usr/bin/env bash
+# agentic-quality-gate — block push when the local quality gate fails
+set -euo pipefail
+HUB="\${AGENTIC_QUALITY_GATE_HOME:-\$HOME/.cursor/agentic-quality-gate}"
+GATE="\${HUB}/scripts/local-gate.sh"
+if [[ ! -x "\$GATE" && ! -f "\$GATE" ]]; then
+  echo "agentic-quality-gate: missing \$GATE — re-run install-app.sh" >&2
+  exit 1
+fi
+echo "═══ agentic-quality-gate (pre-push) ═══"
+# --strict: push fails when gate status is warn/fail or a scanner fails
+exec bash "\$GATE" --base "\${AGENTIC_GATE_BASE:-main}" --strict
+HOOK
+  chmod +x "$HOOK"
+  echo "  git pre-push hook → ${HOOK}"
+
+  # PR CI workflow if missing (merge authority on GitHub)
+  WF_DIR="${APP_ROOT}/.github/workflows"
+  WF="${WF_DIR}/quality-gate.yml"
+  if [[ ! -f "$WF" && -f "${DEST}/examples/caller-workflow.yml" ]]; then
+    mkdir -p "$WF_DIR"
+    cp "${DEST}/examples/caller-workflow.yml" "$WF"
+    echo "  PR workflow → ${WF}  (commit this file; pin SHA before production)"
+  fi
+fi
 
 echo ""
-echo "Done. No need to keep a separate clone of this repo."
-echo ""
-echo "Cursor:"
-echo "  1. Restart Cursor"
-echo "  2. Open your app repo"
-echo "  3. Ask Agent:  Run the quality gate on my changes"
-echo ""
-echo "VS Code (+ Copilot Chat / MCP):"
-echo "  1. Copy ${DEST}/examples/vscode-mcp.json → your app's .vscode/mcp.json"
-echo "     (or: MCP: Add Server → Command → use the same uvx args)"
-echo "  2. Restart VS Code"
-echo "  3. In Copilot Chat (Agent):  Run the quality gate on my changes"
-echo ""
-echo "Update later (optional):"
-echo "  curl -fsSL https://raw.githubusercontent.com/pulumamidi-harsha/agentic-quality-gate/main/scripts/install-ide.sh | bash"
+echo "Done. No need to keep a separate clone of the hub."
+if [[ -n "$APP_ROOT" ]]; then
+  echo ""
+  echo "This app is ready:"
+  echo "  ${APP_ROOT}"
+  echo "  • .vscode/mcp.json  (VS Code MCP)"
+  echo "  • git pre-push hook (runs gate on every push)"
+  echo "  • restart IDE → ask: Run the quality gate on my changes"
+else
+  echo ""
+  echo "Laptop hub installed. To wire an app in one command:"
+  echo "  cd /path/to/your-app"
+  echo "  curl -fsSL https://raw.githubusercontent.com/pulumamidi-harsha/agentic-quality-gate/main/scripts/install-app.sh | bash"
+fi

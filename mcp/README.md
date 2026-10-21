@@ -1,20 +1,14 @@
 # aqg-mcp — MCP server for agentic-quality-gate
 
-Exposes `run_quality_gate` to Cursor / VS Code Agent so developers get Semgrep,
-duplication %, and complexity checks **before** opening a PR.
+Exposes `run_quality_gate` to Cursor / VS Code Agent.
 
-## Install (developers)
-
-Do not clone this repo. One command:
+## Install (from your app repo)
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/pulumamidi-harsha/agentic-quality-gate/main/scripts/install-ide.sh | bash
+cd /path/to/your-app
+curl -fsSL https://raw.githubusercontent.com/pulumamidi-harsha/agentic-quality-gate/main/scripts/install-app.sh | bash
 ```
 
-Restart the IDE, open your app repo, ask Agent:
-
-```text
-Run the quality gate on my changes
-```
+Restart the IDE → ask Agent: `Run the quality gate on my changes`
 
 Full steps: [../README.md](../README.md).

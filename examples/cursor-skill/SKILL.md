@@ -16,11 +16,20 @@ description: >-
 
 ## How to run
 
-Use the MCP tool `run_quality_gate` from server **agentic-quality-gate**:
+Use MCP tool `run_quality_gate` from server **agentic-quality-gate**:
 
 - `workspace_path`: absolute path to the app repo root
 - `base`: usually `main`
 - `staged`: false (unless they only want staged files)
+
+**Live progress (required):** The tool returns in short chunks so the user is not
+left staring at a silent spinner.
+
+1. Tell the user: “Starting the quality gate — I’ll stream the log while it runs.”
+2. Call `run_quality_gate`.
+3. If the reply starts with `## Quality gate progress`, **show the ## Live log
+   to the user**, then call `run_quality_gate` again with the **same** arguments.
+4. Repeat until the reply starts with `# Quality gate` (final report).
 
 If MCP is missing, tell the user to run once:
 
@@ -32,7 +41,8 @@ then restart the IDE — do not fall back to other install paths.
 
 ## How to respond
 
-- Summarize Failed conditions first (status, hotspots, duplication %, complexity).
+- While running: paste each ## Live log chunk (like a build log). Do not stay silent.
+- When finished: summarize Failed conditions first (status, hotspots, duplication %, complexity).
 - For each important finding: **What** / **Why** / **How to fix** (use remediation).
 - Do not dump huge tables.
 - Remind: GitHub **PR Quality Gate** remains the merge authority; this is early feedback.
