@@ -13,23 +13,43 @@ SonarQube replacement for pull requests: Semgrep hotspots, duplication %, comple
 
 ## For developers — one command per app
 
-From your application repo (example: `dso-os-frontend`), paste **one line**.
+From your application repo (example: `dso-os-frontend`), paste **one line** for your OS.
 
-**If you already have this hub next to the app** (works offline / avoids SSL issues):
+### macOS / Linux
+
+**Hub already next to the app** (best; avoids SSL issues):
 
 ```bash
 cd /path/to/dso-os-frontend && bash ../agentic-quality-gate/scripts/install-app.sh && export PATH="$HOME/.local/bin:$PATH" && hash -r
 ```
 
-**Or download from GitHub** (needs working HTTPS to GitHub):
+**Or from GitHub:**
 
 ```bash
 cd /path/to/dso-os-frontend && curl -fsSL https://raw.githubusercontent.com/pulumamidi-harsha/agentic-quality-gate/main/scripts/install-app.sh | bash && export PATH="$HOME/.local/bin:$PATH" && hash -r
 ```
 
-If `curl` fails with a TLS / LibreSSL error, use the local `bash ../agentic-quality-gate/...` line above (or `git clone` the hub once, then that line).
+### Windows (PowerShell)
 
-That installs everything and enables `run-qg` **in the same terminal**. Future terminals get PATH from your shell config automatically.
+Needs **Git for Windows** (for `bash`) and **Python 3** on PATH. Same engines as Mac — the gate still runs via Git Bash under the hood.
+
+**Hub already next to the app:**
+
+```powershell
+cd C:\path\to\dso-os-frontend; & ..\agentic-quality-gate\scripts\install-app.ps1
+```
+
+**Or from GitHub:**
+
+```powershell
+cd C:\path\to\dso-os-frontend; irm https://raw.githubusercontent.com/pulumamidi-harsha/agentic-quality-gate/main/scripts/install-app.ps1 | iex
+```
+
+Then type `run-qg` in that same PowerShell window.
+
+### WSL
+
+Use the macOS/Linux commands inside your WSL distro (not PowerShell).
 
 ### Run in the terminal (recommended — live scrolling logs)
 

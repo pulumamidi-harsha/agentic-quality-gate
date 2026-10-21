@@ -2,8 +2,16 @@
 
 ## Setup (one paste — then `run-qg` works in that same terminal)
 
+**macOS / Linux**
+
 ```bash
-cd /path/to/your-app && curl -fsSL https://raw.githubusercontent.com/pulumamidi-harsha/agentic-quality-gate/main/scripts/install-app.sh | bash && export PATH="$HOME/.local/bin:$PATH" && hash -r
+cd /path/to/your-app && bash ../agentic-quality-gate/scripts/install-app.sh && export PATH="$HOME/.local/bin:$PATH" && hash -r
+```
+
+**Windows (PowerShell)** — needs Git for Windows + Python 3:
+
+```powershell
+cd C:\path\to\your-app; & ..\agentic-quality-gate\scripts\install-app.ps1
 ```
 
 ## Run (pick one)
