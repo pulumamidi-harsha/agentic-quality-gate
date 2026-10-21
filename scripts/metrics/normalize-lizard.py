@@ -13,9 +13,16 @@ from pathlib import Path
 LOC_RE = re.compile(r"@(\d+)-(\d+)@")
 
 
+def strip_repo_rel(path: str) -> str:
+    p = (path or "").strip().replace("\\", "/")
+    while p.startswith("./"):
+        p = p[2:]
+    return p
+
+
 def to_repo_path(raw: str, changed: set[str]) -> str:
     """Normalize absolute or relative lizard paths to repo-relative."""
-    p = (raw or "").strip().lstrip("./")
+    p = strip_repo_rel(raw or "")
     if not p:
         return ""
     path = Path(p)
@@ -73,7 +80,7 @@ def main() -> int:
     changed: set[str] = set()
     if Path(changed_path).is_file():
         changed = {
-            ln.strip().lstrip("./")
+            strip_repo_rel(ln)
             for ln in Path(changed_path).read_text(encoding="utf-8").splitlines()
             if ln.strip()
         }

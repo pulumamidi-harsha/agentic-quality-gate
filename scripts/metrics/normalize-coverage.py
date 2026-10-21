@@ -9,10 +9,17 @@ from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
 
+def strip_repo_rel(path: str) -> str:
+    p = (path or "").strip().replace("\\", "/")
+    while p.startswith("./"):
+        p = p[2:]
+    return p
+
+
 def load_changed(path: Path) -> List[str]:
     if not path.is_file():
         return []
-    return [ln.strip().lstrip("./") for ln in path.read_text().splitlines() if ln.strip()]
+    return [strip_repo_rel(ln) for ln in path.read_text().splitlines() if ln.strip()]
 
 
 def parse_lcov(text: str) -> Dict[str, Tuple[int, int]]:
@@ -24,7 +31,7 @@ def parse_lcov(text: str) -> Dict[str, Tuple[int, int]]:
         if line.startswith("SF:"):
             if current and found:
                 out[current] = (hit, found)
-            current = line[3:].strip().lstrip("./")
+            current = strip_repo_rel(line[3:])
             hit = found = 0
         elif line.startswith("LF:"):
             try:
@@ -53,8 +60,8 @@ def parse_cobertura(path: Path) -> Dict[str, Tuple[int, int]]:
     except ET.ParseError:
         return out
     for cls in root.iter("class"):
-        filename = (cls.attrib.get("filename") or cls.attrib.get("name") or "").lstrip(
-            "./"
+        filename = strip_repo_rel(
+            cls.attrib.get("filename") or cls.attrib.get("name") or ""
         )
         lines = list(cls.iter("line"))
         if not lines or not filename:
@@ -75,7 +82,7 @@ def parse_istanbul(path: Path) -> Dict[str, Tuple[int, int]]:
     for key, entry in data.items():
         if not isinstance(entry, dict):
             continue
-        rel = key.lstrip("./")
+        rel = strip_repo_rel(key)
         # Prefer path relative to cwd if absolute
         statement_map = entry.get("statementMap") or {}
         s = entry.get("s") or {}

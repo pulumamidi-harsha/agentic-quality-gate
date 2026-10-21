@@ -18,9 +18,17 @@ import json, os, sys
 from pathlib import Path
 
 changed_path, ai_path, out_path = sys.argv[1:4]
+
+def strip_repo_rel(p: str) -> str:
+    """Strip leading ./ only — never lstrip('./') which corrupts .github/ paths."""
+    p = p.strip().replace("\\", "/")
+    while p.startswith("./"):
+        p = p[2:]
+    return p
+
 changed = []
 if os.path.isfile(changed_path):
-    changed = [ln.strip().lstrip("./") for ln in open(changed_path) if ln.strip()]
+    changed = [strip_repo_rel(ln) for ln in open(changed_path) if ln.strip()]
 
 # Extension → language key (Semgrep config family)
 EXT = {

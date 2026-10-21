@@ -8,6 +8,14 @@ from pathlib import Path
 from typing import Any
 
 
+def strip_repo_rel(path: str) -> str:
+    """Strip leading ./ only — never str.lstrip('./') (corrupts .github/)."""
+    p = (path or "").strip().replace("\\", "/")
+    while p.startswith("./"):
+        p = p[2:]
+    return p
+
+
 def map_severity(raw: str | None) -> str:
     s = (raw or "WARNING").upper()
     if s in {"ERROR", "CRITICAL", "HIGH"}:
@@ -74,7 +82,7 @@ def default_remediation(rule_id: str, message: str) -> str:
 def normalize(raw: dict[str, Any], changed: set[str]) -> list[dict[str, Any]]:
     out: list[dict[str, Any]] = []
     for r in raw.get("results") or []:
-        path = (r.get("path") or "").lstrip("./")
+        path = strip_repo_rel(r.get("path") or "")
         rule_id = r.get("check_id") or "unknown"
         # Semgrep prefixes check_id with config path; keep full id for fingerprint
         extra = r.get("extra") or {}
@@ -129,7 +137,11 @@ def main() -> int:
     changed: set[str] = set()
     p = Path(changed_path)
     if p.is_file():
-        changed = {ln.strip().lstrip("./") for ln in p.read_text().splitlines() if ln.strip()}
+        changed = {
+            strip_repo_rel(ln)
+            for ln in p.read_text().splitlines()
+            if ln.strip()
+        }
 
     raw_file = Path(raw_path)
     if not raw_file.is_file():

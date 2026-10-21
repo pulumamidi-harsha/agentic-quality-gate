@@ -1,21 +1,23 @@
 #!/usr/bin/env bash
-# Install a pinned Semgrep into AGENTIC_TMP (isolated) so GHA Python images
-# with broken/missing setuptools do not break the scan.
+# Install a pinned Semgrep into an isolated venv under AGENTIC_TMP.
 #
-# IMPORTANT: Semgrep ≥1.38 rejects `python3 -m semgrep` (exit 2, no JSON).
-# Always invoke the `semgrep` console script on PATH.
+# IMPORTANT:
+# - Semgrep ≥1.38 rejects `python3 -m semgrep` (exit 2, no JSON) — use the binary.
+# - setuptools ≥81 drops pkg_resources; Semgrep/OpenTelemetry still need it.
+#   Pin setuptools<81 inside the venv.
 set -euo pipefail
 # shellcheck source=../common.sh
 source "$(cd "$(dirname "$0")/.." && pwd)/common.sh"
 
 SEMGREP_VERSION="${SEMGREP_VERSION:-1.97.0}"
 SEMGREP_PREFIX="${AGENTIC_TMP}/semgrep-prefix"
+SEMGREP_VENV="${SEMGREP_PREFIX}/venv"
 SEMGREP_ENV="${AGENTIC_TMP}/semgrep.env"
 
 write_env() {
   {
-    echo "export PYTHONPATH=\"${SEMGREP_PREFIX}\${PYTHONPATH:+:\$PYTHONPATH}\""
-    echo "export PATH=\"${SEMGREP_PREFIX}/bin\${PATH:+:\$PATH}\""
+    echo "export PATH=\"${SEMGREP_VENV}/bin\${PATH:+:\$PATH}\""
+    echo "export VIRTUAL_ENV=\"${SEMGREP_VENV}\""
   } > "$SEMGREP_ENV"
 }
 
@@ -41,21 +43,27 @@ if semgrep_ok; then
   exit 0
 fi
 
-agentic_log "  Installing semgrep==${SEMGREP_VERSION} into ${SEMGREP_PREFIX}"
+agentic_log "  Installing semgrep==${SEMGREP_VERSION} into ${SEMGREP_VENV}"
 rm -rf "$SEMGREP_PREFIX"
 mkdir -p "$SEMGREP_PREFIX"
 
+python3 -m venv "$SEMGREP_VENV"
+# shellcheck disable=SC1091
+source "${SEMGREP_VENV}/bin/activate"
+
 set +e
-python3 -m pip install --target "$SEMGREP_PREFIX" --quiet \
-  "setuptools>=75" wheel "semgrep==${SEMGREP_VERSION}"
+pip install --upgrade --quiet pip
+pip install --quiet \
+  "setuptools>=75,<81" wheel "semgrep==${SEMGREP_VERSION}"
 PIP_RC=$?
 set -e
 if [[ $PIP_RC -ne 0 ]]; then
   agentic_log "  quiet pip failed — retrying with logs"
-  python3 -m pip install --target "$SEMGREP_PREFIX" \
-    "setuptools>=75" wheel "semgrep==${SEMGREP_VERSION}"
+  pip install \
+    "setuptools>=75,<81" wheel "semgrep==${SEMGREP_VERSION}"
 fi
 
+deactivate 2>/dev/null || true
 write_env
 # shellcheck disable=SC1090
 source "$SEMGREP_ENV"
@@ -63,13 +71,15 @@ source "$SEMGREP_ENV"
 if ! semgrep_ok; then
   agentic_log "  ⚠ Semgrep still not runnable after isolated install:"
   set +e
-  ls -la "${SEMGREP_PREFIX}/bin" 2>&1 | while IFS= read -r line; do
+  ls -la "${SEMGREP_VENV}/bin" 2>&1 | while IFS= read -r line; do
     agentic_log "    $line"
   done
-  PATH="${SEMGREP_PREFIX}/bin:${PATH}" semgrep --version 2>&1 | tail -n 25 | while IFS= read -r line; do
+  "${SEMGREP_VENV}/bin/semgrep" --version 2>&1 | tail -n 25 | while IFS= read -r line; do
     agentic_log "    $line"
   done
   set -e
+  # Do not leave a broken semgrep on PATH for scan-semgrep.sh
+  rm -f "$SEMGREP_ENV"
   exit 0
 fi
 agentic_log "  Installed: $(semgrep --version 2>/dev/null | head -1)"

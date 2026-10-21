@@ -8,6 +8,13 @@ from pathlib import Path
 from typing import Any
 
 
+def strip_repo_rel(path: str) -> str:
+    p = (path or "").strip().replace("\\", "/")
+    while p.startswith("./"):
+        p = p[2:]
+    return p
+
+
 def main() -> int:
     if len(sys.argv) != 4:
         print(
@@ -19,7 +26,7 @@ def main() -> int:
     changed = set()
     if Path(changed_path).is_file():
         changed = {
-            ln.strip().lstrip("./")
+            strip_repo_rel(ln)
             for ln in Path(changed_path).read_text(encoding="utf-8").splitlines()
             if ln.strip()
         }
@@ -43,7 +50,7 @@ def main() -> int:
         # jscpd format: firstFile / secondFile with name + startLoc
         first = dup.get("firstFile") or dup.get("fragment") or {}
         second = dup.get("secondFile") or {}
-        path = (first.get("name") or first.get("path") or "").lstrip("./")
+        path = strip_repo_rel(first.get("name") or first.get("path") or "")
         start = first.get("start") or first.get("startLoc") or 0
         if isinstance(start, dict):
             start_line = start.get("line") or start.get("startLine")
@@ -51,7 +58,7 @@ def main() -> int:
             start_line = start or None
         lines_count = dup.get("lines") or dup.get("lineCount") or 0
         tokens = dup.get("tokens") or 0
-        other = (second.get("name") or second.get("path") or "").lstrip("./")
+        other = strip_repo_rel(second.get("name") or second.get("path") or "")
         in_diff = (path in changed) or (other in changed)
         # Only emit when at least one side is in the PR
         if not in_diff:

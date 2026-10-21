@@ -109,13 +109,20 @@ if [[ -f "$SEMGREP_ENV" ]]; then
   # shellcheck disable=SC1090
   source "$SEMGREP_ENV"
 fi
-if ! command -v semgrep >/dev/null 2>&1; then
-  agentic_log "  ⚠ Semgrep CLI unavailable — writing empty results"
+SEMGREP_VER=""
+if command -v semgrep >/dev/null 2>&1; then
+  set +e
+  SEMGREP_VER="$(semgrep --version 2>/dev/null | head -1)"
+  SEMGREP_VER_RC=$?
+  set -e
+fi
+if [[ -z "${SEMGREP_VER:-}" || "${SEMGREP_VER_RC:-1}" -ne 0 ]]; then
+  agentic_log "  ⚠ Semgrep CLI unavailable or broken — writing empty results"
   echo '{"results":[]}' > "$RAW"
   exit 0
 fi
 SEMGREP=(semgrep)
-agentic_log "  Using: $(command -v semgrep) ($(semgrep --version 2>/dev/null | head -1))"
+agentic_log "  Using: $(command -v semgrep) (${SEMGREP_VER})"
 
 json_usable() {
   python3 - "$1" <<'PY'
