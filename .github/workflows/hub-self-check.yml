@@ -69,6 +69,7 @@ jobs:
             scripts/metrics/select-semgrep-configs.sh
             scripts/metrics/install-semgrep.sh
             scripts/metrics/scan-semgrep.sh
+            scripts/metrics/engine-health.sh
             scripts/metrics/merge-findings.sh
             scripts/metrics/run-jscpd.sh
             scripts/metrics/run-lizard.sh

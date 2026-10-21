@@ -4,6 +4,8 @@
 set -euo pipefail
 # shellcheck source=../common.sh
 source "$(cd "$(dirname "$0")/.." && pwd)/common.sh"
+# shellcheck source=engine-health.sh
+source "$(cd "$(dirname "$0")" && pwd)/engine-health.sh"
 
 METRICS_DIR="$(cd "$(dirname "$0")" && pwd)"
 OUT="${AGENTIC_TMP}/coverage-findings.json"
@@ -15,11 +17,19 @@ echo '[]' > "$OUT"
 
 agentic_log "┌─ coverage (changed files) ─┐"
 
+set +e
 python3 "${METRICS_DIR}/normalize-coverage.py" \
   "$CHANGED" \
   "$OUT" \
   "$THRESHOLD" \
   "$AGENTIC_TMP" \
   "$(pwd)"
-
+RC=$?
+set -e
+if [[ $RC -ne 0 ]]; then
+  write_tooling_finding "coverage" "normalize-coverage exited ${RC}" "$OUT"
+  record_engine "coverage" "failed" "normalize-coverage exited ${RC}"
+  exit 1
+fi
+record_engine "coverage" "ok" "coverage findings written"
 exit 0

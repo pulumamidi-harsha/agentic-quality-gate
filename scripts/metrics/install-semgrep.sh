@@ -69,7 +69,7 @@ write_env
 source "$SEMGREP_ENV"
 
 if ! semgrep_ok; then
-  agentic_log "  ⚠ Semgrep still not runnable after isolated install:"
+  agentic_log "  ✗ Semgrep still not runnable after isolated install:"
   set +e
   ls -la "${SEMGREP_VENV}/bin" 2>&1 | while IFS= read -r line; do
     agentic_log "    $line"
@@ -80,6 +80,7 @@ if ! semgrep_ok; then
   set -e
   # Do not leave a broken semgrep on PATH for scan-semgrep.sh
   rm -f "$SEMGREP_ENV"
-  exit 0
+  # Fail-closed: missing Semgrep must fail the job (not silently empty-scan)
+  exit 1
 fi
 agentic_log "  Installed: $(semgrep --version 2>/dev/null | head -1)"

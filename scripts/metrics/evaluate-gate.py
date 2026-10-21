@@ -140,6 +140,11 @@ def evaluate(
     fail_reasons: List[str] = []
     warn_reasons: List[str] = []
 
+    tooling = [f for f in findings if f.get("category") == "tooling"]
+    if tooling:
+        fail_reasons.append(
+            f"{len(tooling)} scanner(s) failed to run (fail-closed)"
+        )
     if cfg.get("fail_on_secrets") and secrets_in_diff:
         fail_reasons.append(f"{len(secrets_in_diff)} secret finding(s)")
     if security_hotspots:
@@ -213,6 +218,12 @@ def evaluate(
         blocking = False
         exit_code = 0
 
+    # Scanner infra failures always fail the job (even advisory) — empty scan ≠ clean PR
+    if tooling:
+        status = "fail"
+        blocking = True
+        exit_code = 1
+
     notes = {
         "advisory": "Advisory mode: GitHub check stays green. Flip to soft_fail after pilot.",
         "soft_fail": "Soft-fail: check fails on fail_if (secrets/errors). Teams may mark check non-required.",
@@ -234,6 +245,7 @@ def evaluate(
             "warnings_in_diff": sum(1 for f in in_diff if f.get("severity") == "warning"),
             "secrets": len(secrets_in_diff),
             "security_hotspots": len(security_hotspots),
+            "scanner_failures": len(tooling),
             "duplication": len(dup_findings),
             "coverage": len(cov_findings),
             "complexity": len(complexity),
@@ -252,6 +264,11 @@ def _condition_lines(result: Dict[str, Any], findings: List[Dict[str, Any]]) -> 
     status = result["status"]
     mark_fail = "❌" if status == "fail" else "⚠️"
 
+    if c.get("scanner_failures", 0) > 0:
+        out.append(
+            f"- {mark_fail} **{c['scanner_failures']}** scanner(s) failed to run "
+            f"(required = all scanners healthy)"
+        )
     if c.get("security_hotspots", 0) > 0:
         out.append(
             f"- {mark_fail} **{c['security_hotspots']}** Security Hotspot(s) "

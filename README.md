@@ -30,6 +30,13 @@ See [`examples/caller-workflow.yml`](examples/caller-workflow.yml). Pin `uses:` 
 - Engines / packs: `config/packages/default.yml` + `config/packages/default/rules/`
 - Pass/fail: `config/quality-gate.yml` (`AGENTIC_GATE_MODE=advisory|soft_fail|hard_fail`)
 
+## Fail-closed scanners
+
+If Semgrep / jscpd / lizard is **enabled** and has PR code to scan, but install or
+scan fails (no usable output), the **job fails** even in `advisory` mode — so an
+empty scan is never treated as a clean PR. Intentional skips (docs-only PRs, no
+code files) still pass.
+
 ## Skip
 
 PR labels: `skip-quality-gate`, `skip-ai-review`, or `no-review`.

@@ -4,6 +4,8 @@
 set -euo pipefail
 # shellcheck source=../common.sh
 source "$(cd "$(dirname "$0")/.." && pwd)/common.sh"
+# shellcheck source=engine-health.sh
+source "$(cd "$(dirname "$0")" && pwd)/engine-health.sh"
 
 RAW="${AGENTIC_TMP}/semgrep-raw.json"
 LANG_FILE="${AGENTIC_TMP}/metrics-languages.json"
@@ -17,6 +19,8 @@ SCAN_MODE=$(jq -r '.scan_mode // "skip"' "$LANG_FILE" 2>/dev/null || echo skip)
 if [[ "$SCAN_MODE" == "skip" ]]; then
   agentic_log "  No scannable code languages/files — skipping Semgrep"
   echo '{"results":[]}' > "$RAW"
+  echo '[]' > "${AGENTIC_TMP}/semgrep-findings.json"
+  record_engine "semgrep" "skipped" "no scannable code in PR"
   exit 0
 fi
 
@@ -45,6 +49,8 @@ else
   if [[ ! -s "$TARGETS_FILE" ]]; then
     agentic_log "  No existing code files on disk from PR list — skipping"
     echo '{"results":[]}' > "$RAW"
+    echo '[]' > "${AGENTIC_TMP}/semgrep-findings.json"
+    record_engine "semgrep" "skipped" "changed code files not on disk"
     exit 0
   fi
   TARGET_COUNT=$(wc -l < "$TARGETS_FILE" | tr -d ' ')
@@ -117,9 +123,12 @@ if command -v semgrep >/dev/null 2>&1; then
   set -e
 fi
 if [[ -z "${SEMGREP_VER:-}" || "${SEMGREP_VER_RC:-1}" -ne 0 ]]; then
-  agentic_log "  ⚠ Semgrep CLI unavailable or broken — writing empty results"
+  agentic_log "  ✗ Semgrep CLI unavailable or broken — failing job (fail-closed)"
   echo '{"results":[]}' > "$RAW"
-  exit 0
+  write_tooling_finding "semgrep" "CLI unavailable or broken after install" \
+    "${AGENTIC_TMP}/semgrep-findings.json"
+  record_engine "semgrep" "failed" "CLI unavailable or broken after install"
+  exit 1
 fi
 SEMGREP=(semgrep)
 agentic_log "  Using: $(command -v semgrep) (${SEMGREP_VER})"
@@ -218,6 +227,7 @@ if [[ ${#REGISTRY_CONFIGS[@]} -gt 0 ]]; then
 fi
 
 # Local package rules — always (eval / hotspot parity lives here)
+LOCAL_OK=true
 if [[ ${#LOCAL_CONFIGS[@]} -gt 0 ]]; then
   LOC_OUT="${AGENTIC_TMP}/semgrep-local.json"
   run_scan "$LOC_OUT" "${LOCAL_CONFIGS[@]}"
@@ -225,7 +235,8 @@ if [[ ${#LOCAL_CONFIGS[@]} -gt 0 ]]; then
     PARTIALS+=("$LOC_OUT")
     agentic_log "  Local rules scan ok"
   else
-    agentic_log "  ⚠ Local rules scan failed (exit ${SCAN_RC})"
+    LOCAL_OK=false
+    agentic_log "  ✗ Local rules scan failed (exit ${SCAN_RC})"
     if [[ -s "$STDERR_FILE" ]]; then
       tail -n 15 "$STDERR_FILE" | while IFS= read -r line; do
         agentic_log "    $line"
@@ -274,4 +285,20 @@ out.write_text(json.dumps(merged) + "\n", encoding="utf-8")
 print(f"  Semgrep merged results: {len(merged['results'])}")
 PY
 
+# Fail-closed: local package rules are required when present; empty scan with
+# code targets + configs must not look like a clean PR.
+if [[ "$LOCAL_OK" != "true" ]]; then
+  write_tooling_finding "semgrep" "local package rules scan failed (exit ${SCAN_RC:-unknown})" \
+    "${AGENTIC_TMP}/semgrep-findings.json"
+  record_engine "semgrep" "failed" "local package rules scan failed"
+  exit 1
+fi
+if [[ ${#PARTIALS[@]} -eq 0 && ( ${#REGISTRY_CONFIGS[@]} -gt 0 || ${#LOCAL_CONFIGS[@]} -gt 0 ) ]]; then
+  write_tooling_finding "semgrep" "all Semgrep configs failed — no usable scan output" \
+    "${AGENTIC_TMP}/semgrep-findings.json"
+  record_engine "semgrep" "failed" "all Semgrep configs failed"
+  exit 1
+fi
+
+record_engine "semgrep" "ok" "scanned ${#TARGETS[@]} target(s)"
 exit 0

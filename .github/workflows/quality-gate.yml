@@ -119,13 +119,15 @@ jobs:
             ${{ env.AGENTIC_TMP }}/metrics-languages.json
             ${{ env.AGENTIC_TMP }}/semgrep-configs.json
             ${{ env.AGENTIC_TMP }}/pr-changed-files.txt
+            ${{ env.AGENTIC_TMP }}/engine-status.json
           retention-days: 14
           if-no-files-found: warn
 
   publish:
     name: Publish gate comment
     needs: [gate, metrics]
-    if: always() && needs.gate.outputs.skip != 'true' && needs.metrics.result == 'success'
+    # Also publish when metrics fail-closed (scanner install/scan errors)
+    if: always() && needs.gate.outputs.skip != 'true' && (needs.metrics.result == 'success' || needs.metrics.result == 'failure')
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
