@@ -1,0 +1,276 @@
+# Reusable Sonar-replacement quality gate (no AI).
+# Callers pin to a full commit SHA.
+name: PR Quality Gate
+
+on:
+  workflow_call:
+    inputs:
+      pipeline_repository:
+        description: "Hub repo containing scripts (org/repo)"
+        required: false
+        type: string
+        default: "pulumamidi-harsha/agentic-quality-gate"
+      pipeline_ref:
+        description: "Git ref / full SHA for hub scripts"
+        required: false
+        type: string
+        default: "main"
+      gate_mode:
+        description: "advisory | soft_fail | hard_fail (overrides hub YAML when set)"
+        required: false
+        type: string
+        default: ""
+    secrets:
+      ORG_PAT:
+        required: false
+
+permissions:
+  contents: read
+  pull-requests: write
+  issues: write
+
+concurrency:
+  group: quality-gate-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+env:
+  AGENTIC_TMP: /tmp/agentic-quality-gate
+  PIPELINE_DIR: /tmp/agentic-quality-gate-pipeline
+
+jobs:
+  gate:
+    name: Check skip label
+    runs-on: ubuntu-latest
+    outputs:
+      skip: ${{ steps.skip_check.outputs.skip }}
+    steps:
+      - id: skip_check
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const labels = context.payload.pull_request?.labels?.map(l => l.name) || [];
+            const skip = labels.includes('skip-quality-gate') || labels.includes('skip-ai-review') || labels.includes('no-review');
+            if (skip) core.info('Skipping quality gate — PR has skip label');
+            core.setOutput('skip', skip.toString());
+
+  metrics:
+    name: Metrics and quality gate
+    needs: gate
+    if: needs.gate.outputs.skip != 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    outputs:
+      gate_status: ${{ steps.metrics.outputs.gate_status }}
+      gate_mode: ${{ steps.metrics.outputs.gate_mode }}
+      gate_blocking: ${{ steps.metrics.outputs.gate_blocking }}
+    steps:
+      - name: Checkout PR repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Clone quality-gate hub
+        env:
+          PIPELINE_TOKEN: ${{ secrets.ORG_PAT || github.token }}
+          PIPELINE_REPO: ${{ inputs.pipeline_repository }}
+          PIPELINE_REF: ${{ inputs.pipeline_ref }}
+        run: |
+          rm -rf "$PIPELINE_DIR"
+          git clone "https://x-access-token:${PIPELINE_TOKEN}@github.com/${PIPELINE_REPO}.git" "$PIPELINE_DIR"
+          git -C "$PIPELINE_DIR" checkout "$PIPELINE_REF"
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Set up Node (jscpd)
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Run quality-gate package
+        id: metrics
+        env:
+          GITHUB_BASE_REF: ${{ github.event.pull_request.base.ref }}
+          GITHUB_EVENT_PULL_REQUEST_NUMBER: ${{ github.event.pull_request.number }}
+          GITHUB_EVENT_PULL_REQUEST_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          AGENTIC_GATE_MODE: ${{ inputs.gate_mode || vars.AGENTIC_GATE_MODE }}
+          COVERAGE_THRESHOLD_PCT: "80"
+          LIZARD_COMPLEXITY_THRESHOLD: "15"
+        run: |
+          mkdir -p "${AGENTIC_TMP}"
+          bash "$PIPELINE_DIR/scripts/run-metrics.sh"
+
+      - name: Upload metrics artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: agentic-metrics
+          path: |
+            ${{ env.AGENTIC_TMP }}/findings.json
+            ${{ env.AGENTIC_TMP }}/gate-result.json
+            ${{ env.AGENTIC_TMP }}/quality-gate.md
+            ${{ env.AGENTIC_TMP }}/semgrep-findings.json
+            ${{ env.AGENTIC_TMP }}/jscpd-findings.json
+            ${{ env.AGENTIC_TMP }}/lizard-findings.json
+            ${{ env.AGENTIC_TMP }}/coverage-findings.json
+            ${{ env.AGENTIC_TMP }}/metrics-languages.json
+            ${{ env.AGENTIC_TMP }}/semgrep-configs.json
+            ${{ env.AGENTIC_TMP }}/pr-changed-files.txt
+          retention-days: 14
+          if-no-files-found: warn
+
+  publish:
+    name: Publish gate comment
+    needs: [gate, metrics]
+    if: always() && needs.gate.outputs.skip != 'true' && needs.metrics.result == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Clone quality-gate hub
+        env:
+          PIPELINE_TOKEN: ${{ secrets.ORG_PAT || github.token }}
+          PIPELINE_REPO: ${{ inputs.pipeline_repository }}
+          PIPELINE_REF: ${{ inputs.pipeline_ref }}
+        run: |
+          rm -rf "$PIPELINE_DIR"
+          git clone "https://x-access-token:${PIPELINE_TOKEN}@github.com/${PIPELINE_REPO}.git" "$PIPELINE_DIR"
+          git -C "$PIPELINE_DIR" checkout "$PIPELINE_REF"
+
+      - name: Download metrics artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: agentic-metrics
+          path: ${{ env.AGENTIC_TMP }}
+
+      - name: Post quality-gate comment + line reviews
+        uses: actions/github-script@v7
+        env:
+          AGENTIC_TMP: ${{ env.AGENTIC_TMP }}
+          PIPELINE_DIR: ${{ env.PIPELINE_DIR }}
+          GITHUB_RUN_ID: ${{ github.run_id }}
+          GITHUB_SERVER_URL: ${{ github.server_url }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+        with:
+          script: |
+            const path = require('path');
+            const mod = path.join(process.env.PIPELINE_DIR, 'scripts', 'post-quality-gate.js');
+            const {
+              body,
+              COMMENT_MARKER,
+              FINDING_MARKER,
+              inlineComments = [],
+            } = require(mod);
+
+            const isGateComment = (c) => {
+              const login = c.user?.login || '';
+              const bot = c.user?.type === 'Bot' || login === 'github-actions[bot]' || login.startsWith('github-actions');
+              if (!bot || !c.body) return false;
+              return c.body.includes(COMMENT_MARKER);
+            };
+
+            let allComments = [];
+            for (let page = 1; page <= 10; page++) {
+              const { data } = await github.rest.issues.listComments({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                per_page: 100,
+                page
+              });
+              allComments = allComments.concat(data);
+              if (data.length < 100) break;
+            }
+            const existing = allComments.filter(isGateComment).sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+            if (existing[0]) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: existing[0].id,
+                body
+              });
+              for (const dup of existing.slice(1)) {
+                await github.rest.issues.deleteComment({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  comment_id: dup.id
+                }).catch(() => {});
+              }
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body
+              });
+            }
+
+            const findingMarker = FINDING_MARKER || '<!-- agentic-review:finding -->';
+            try {
+              let reviewComments = [];
+              for (let page = 1; page <= 20; page++) {
+                const { data } = await github.rest.pulls.listReviewComments({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  pull_number: context.issue.number,
+                  per_page: 100,
+                  page
+                });
+                reviewComments = reviewComments.concat(data);
+                if (data.length < 100) break;
+              }
+              for (const c of reviewComments.filter(c => {
+                const login = c.user?.login || '';
+                const bot = c.user?.type === 'Bot' || login === 'github-actions[bot]' || login.startsWith('github-actions');
+                return bot && c.body && c.body.includes(findingMarker);
+              })) {
+                await github.rest.pulls.deleteReviewComment({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  comment_id: c.id
+                }).catch(() => {});
+              }
+            } catch (e) {
+              console.log('cleanup finding comments:', e.message);
+            }
+
+            const headSha = context.payload.pull_request?.head?.sha;
+            if (!inlineComments.length) {
+              core.info('No inline findings to post');
+              return;
+            }
+            try {
+              await github.rest.pulls.createReview({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                pull_number: context.issue.number,
+                commit_id: headSha,
+                event: 'COMMENT',
+                body: `_Quality gate posted **${inlineComments.length}** line comment(s). See summary comment for Failed conditions._`,
+                comments: inlineComments
+              });
+              core.info(`Posted ${inlineComments.length} inline finding comment(s)`);
+            } catch (e) {
+              console.log('batch review failed, fallback per comment:', e.message);
+              let posted = 0;
+              for (const c of inlineComments) {
+                try {
+                  await github.rest.pulls.createReviewComment({
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    pull_number: context.issue.number,
+                    commit_id: headSha,
+                    path: c.path,
+                    line: c.start_line || c.line,
+                    side: 'RIGHT',
+                    body: c.body
+                  });
+                  posted++;
+                } catch (err) {
+                  console.log(`skip ${c.path}:${c.line}:`, err.message);
+                }
+              }
+              core.info(`Posted ${posted}/${inlineComments.length} via fallback`);
+            }

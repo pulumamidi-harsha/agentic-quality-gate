@@ -1,0 +1,22 @@
+# Drop into a consumer repo as .github/workflows/quality-gate.yml
+name: PR Quality Gate
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+  pull-requests: write
+  issues: write
+
+jobs:
+  quality-gate:
+    # Pin to a full commit SHA in production
+    uses: pulumamidi-harsha/agentic-quality-gate/.github/workflows/quality-gate.yml@main
+    with:
+      pipeline_repository: pulumamidi-harsha/agentic-quality-gate
+      pipeline_ref: main
+      # gate_mode: advisory   # or soft_fail / hard_fail
+    secrets:
+      ORG_PAT: ${{ secrets.ORG_PAT }}
