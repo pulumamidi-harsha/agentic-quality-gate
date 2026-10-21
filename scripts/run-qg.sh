@@ -14,7 +14,7 @@ GATE="${HUB}/scripts/local-gate.sh"
 if [[ ! -f "$GATE" ]]; then
   echo "error: quality gate not installed." >&2
   echo "  cd to your app and run:" >&2
-  echo "  curl -fsSL https://raw.githubusercontent.com/pulumamidi-harsha/agentic-quality-gate/main/scripts/install-app.sh | bash" >&2
+  echo "  cd /path/to/your-app && curl -fsSL https://raw.githubusercontent.com/pulumamidi-harsha/agentic-quality-gate/main/scripts/install-app.sh | bash && export PATH=\"\$HOME/.local/bin:\$PATH\" && hash -r" >&2
   exit 2
 fi
 

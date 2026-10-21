@@ -286,7 +286,7 @@ fi
 
 # Verify the command resolves when PATH includes BIN_DIR
 if PATH="${BIN_DIR}:$PATH" command -v run-qg >/dev/null 2>&1; then
-  echo "  OK   → run-qg is available (open a new terminal, or: source ~/.zshrc)"
+  echo "  OK   → ~/.local/bin/run-qg installed"
 else
   echo "  warn → run-qg symlink missing; try: ls -la ${BIN_DIR}/run-qg" >&2
 fi
@@ -295,15 +295,10 @@ echo ""
 echo "Done. No need to keep a separate clone of the hub."
 if [[ -n "$APP_ROOT" ]]; then
   echo ""
-  echo "This app is ready:"
-  echo "  ${APP_ROOT}"
-  echo "  • Terminal (live logs):  run-qg"
-  echo "  • VS Code task: Run Task → run-qg"
-  echo "  • Agent chat: type run-qg"
-  echo "  • git pre-push hook on every push"
+  echo "This app is ready: ${APP_ROOT}"
+  echo "  Type: run-qg"
 else
   echo ""
-  echo "Laptop hub installed. To wire an app in one command:"
-  echo "  cd /path/to/your-app"
-  echo "  curl -fsSL https://raw.githubusercontent.com/pulumamidi-harsha/agentic-quality-gate/main/scripts/install-app.sh | bash"
+  echo "Laptop hub installed. Wire an app with one paste:"
+  echo "  cd /path/to/your-app && curl -fsSL https://raw.githubusercontent.com/pulumamidi-harsha/agentic-quality-gate/main/scripts/install-app.sh | bash && export PATH=\"\$HOME/.local/bin:\$PATH\" && hash -r"
 fi

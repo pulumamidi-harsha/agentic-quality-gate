@@ -1,10 +1,9 @@
 # App adoption — one command
 
-## Setup
+## Setup (one paste — then `run-qg` works in that same terminal)
 
 ```bash
-cd /path/to/your-app
-curl -fsSL https://raw.githubusercontent.com/pulumamidi-harsha/agentic-quality-gate/main/scripts/install-app.sh | bash
+cd /path/to/your-app && curl -fsSL https://raw.githubusercontent.com/pulumamidi-harsha/agentic-quality-gate/main/scripts/install-app.sh | bash && export PATH="$HOME/.local/bin:$PATH" && hash -r
 ```
 
 ## Run (pick one)

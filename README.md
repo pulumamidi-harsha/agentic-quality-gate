@@ -13,21 +13,17 @@ SonarQube replacement for pull requests: Semgrep hotspots, duplication %, comple
 
 ## For developers — one command per app
 
-**Do not clone this hub.** From your application repo (example: `dso-os-frontend`):
+**Do not clone this hub.** From your application repo (example: `dso-os-frontend`), paste **this one line only**:
 
 ```bash
-cd /path/to/dso-os-frontend
-curl -fsSL https://raw.githubusercontent.com/pulumamidi-harsha/agentic-quality-gate/main/scripts/install-app.sh | bash
+cd /path/to/dso-os-frontend && curl -fsSL https://raw.githubusercontent.com/pulumamidi-harsha/agentic-quality-gate/main/scripts/install-app.sh | bash && export PATH="$HOME/.local/bin:$PATH" && hash -r
 ```
 
-That installs the hub, VS Code MCP, puts **`run-qg` on your PATH**, a pre-push hook, and (if missing) the PR workflow.
-
-Open a **new** terminal tab (or `source ~/.zshrc`), then from the app:
+That installs everything and enables `run-qg` **in the same terminal** (no `source`, no new tab, nothing else to remember). Future terminals get PATH from your shell config automatically.
 
 ### Run in the terminal (recommended — live scrolling logs)
 
 ```bash
-cd /path/to/dso-os-frontend
 run-qg
 ```
 

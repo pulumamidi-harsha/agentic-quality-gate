@@ -34,7 +34,7 @@ left staring at a silent spinner.
 If MCP is missing, tell the user to run once from the app repo:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/pulumamidi-harsha/agentic-quality-gate/main/scripts/install-app.sh | bash
+cd <app-root> && curl -fsSL https://raw.githubusercontent.com/pulumamidi-harsha/agentic-quality-gate/main/scripts/install-app.sh | bash && export PATH="$HOME/.local/bin:$PATH" && hash -r
 ```
 
 then restart the IDE — do not fall back to other install paths.

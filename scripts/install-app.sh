@@ -1,13 +1,15 @@
 #!/usr/bin/env bash
-# One command from your APPLICATION repo — MCP + Agent + local push hook.
+# One paste from your APPLICATION repo — MCP + Agent + CLI + push hook.
 #
-#   cd /path/to/dso-os-frontend   # (or any app)
-#   curl -fsSL https://raw.githubusercontent.com/pulumamidi-harsha/agentic-quality-gate/main/scripts/install-app.sh | bash
+#   cd /path/to/your-app && curl -fsSL https://raw.githubusercontent.com/pulumamidi-harsha/agentic-quality-gate/main/scripts/install-app.sh | bash && export PATH="$HOME/.local/bin:$PATH" && hash -r
+#
+# The trailing export/hash-r is required so `run-qg` works in THIS terminal
+# immediately (curl|bash cannot change the parent shell by itself).
 #
 # What it does:
 #   1) Installs the hub under ~/.cursor/agentic-quality-gate (no manual clone)
 #   2) Registers Cursor MCP + this app's .vscode/mcp.json
-#   3) Puts `run-qg` on your PATH (~/.local/bin) so the terminal command works
+#   3) Installs ~/.local/bin/run-qg and writes PATH into shell rc files
 #   4) Installs a git pre-push hook so the gate runs before every push
 #
 set -euo pipefail
@@ -17,7 +19,7 @@ RAW_BASE="${AGENTIC_QUALITY_GATE_RAW:-https://raw.githubusercontent.com/pulumami
 if ! git rev-parse --show-toplevel >/dev/null 2>&1; then
   echo "error: run this from inside your application git repo, e.g.:" >&2
   echo "  cd ~/code/dso-os-frontend" >&2
-  echo "  curl -fsSL ${RAW_BASE}/scripts/install-app.sh | bash" >&2
+  echo "  cd /path/to/your-app && curl -fsSL ${RAW_BASE}/scripts/install-app.sh | bash && export PATH=\"\$HOME/.local/bin:\$PATH\" && hash -r" >&2
   exit 2
 fi
 
@@ -37,9 +39,7 @@ else
 fi
 
 echo ""
-echo "Done for this app."
-echo "  Restart VS Code / Cursor on: ${APP_ROOT}"
-echo "  Terminal (live logs):  run-qg"
-echo "  VS Code: Terminal → Run Task → run-qg"
-echo "  Agent chat: run-qg"
-echo "  Push runs the gate automatically (pre-push). Skip once: git push --no-verify"
+echo "Done for this app: ${APP_ROOT}"
+echo "  Type:  run-qg"
+echo "  (If you used the full one-liner from the README, run-qg works in this terminal now.)"
+echo "  VS Code: Run Task → run-qg · Agent chat: run-qg · push runs the gate automatically"
