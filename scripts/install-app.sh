@@ -6,8 +6,8 @@
 #
 # What it does:
 #   1) Installs the hub under ~/.cursor/agentic-quality-gate (no manual clone)
-#   2) Registers Cursor MCP
-#   3) Writes this repo's .vscode/mcp.json (VS Code ready)
+#   2) Registers Cursor MCP + this app's .vscode/mcp.json
+#   3) Puts `run-qg` on your PATH (~/.local/bin) so the terminal command works
 #   4) Installs a git pre-push hook so the gate runs before every push
 #
 set -euo pipefail

@@ -20,19 +20,15 @@ cd /path/to/dso-os-frontend
 curl -fsSL https://raw.githubusercontent.com/pulumamidi-harsha/agentic-quality-gate/main/scripts/install-app.sh | bash
 ```
 
-That installs the hub, VS Code MCP, a `run-qg` CLI, a pre-push hook, and (if missing) the PR workflow.
+That installs the hub, VS Code MCP, puts **`run-qg` on your PATH**, a pre-push hook, and (if missing) the PR workflow.
+
+Open a **new** terminal tab (or `source ~/.zshrc`), then from the app:
 
 ### Run in the terminal (recommended — live scrolling logs)
 
 ```bash
 cd /path/to/dso-os-frontend
 run-qg
-```
-
-Or:
-
-```bash
-bash ~/.cursor/agentic-quality-gate/scripts/run-qg.sh
 ```
 
 In **VS Code**: `Terminal → Run Task… → run-qg` (same live log in the Terminal panel).

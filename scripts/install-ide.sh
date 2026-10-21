@@ -236,15 +236,57 @@ HOOK
   fi
 fi
 
-# User-space CLI: ~/.local/bin/run-qg → live terminal logs
+# User-space CLI: typing `run-qg` in any terminal must work (no admin)
 BIN_DIR="${HOME}/.local/bin"
 mkdir -p "$BIN_DIR"
+if [[ ! -f "${DEST}/scripts/run-qg.sh" ]]; then
+  echo "error: missing ${DEST}/scripts/run-qg.sh — hub install incomplete" >&2
+  exit 1
+fi
+chmod +x "${DEST}/scripts/run-qg.sh"
 ln -sfn "${DEST}/scripts/run-qg.sh" "${BIN_DIR}/run-qg"
-chmod +x "${DEST}/scripts/run-qg.sh" "${BIN_DIR}/run-qg"
+chmod +x "${BIN_DIR}/run-qg"
 echo "  CLI → ${BIN_DIR}/run-qg"
-if [[ ":$PATH:" != *":${BIN_DIR}:"* ]]; then
-  echo "  Note: add ${BIN_DIR} to PATH if 'run-qg' is not found:"
-  echo "    echo 'export PATH=\"\$HOME/.local/bin:\$PATH\"' >> ~/.zshrc && source ~/.zshrc"
+
+# Ensure ~/.local/bin is on PATH for zsh/bash login shells (idempotent)
+PATH_LINE='export PATH="$HOME/.local/bin:$PATH"'
+PATH_MARKER='# agentic-quality-gate: run-qg on PATH'
+ensure_path_rc() {
+  local rc="$1"
+  [[ -f "$rc" ]] || touch "$rc"
+  if grep -Fq "$PATH_MARKER" "$rc" 2>/dev/null; then
+    return 0
+  fi
+  {
+    echo ""
+    echo "$PATH_MARKER"
+    echo "$PATH_LINE"
+  } >> "$rc"
+  echo "  PATH → added ~/.local/bin to ${rc}"
+}
+ensure_path_rc "${HOME}/.zshrc"
+ensure_path_rc "${HOME}/.bashrc"
+# Fish (optional)
+if [[ -d "${HOME}/.config/fish" ]]; then
+  FISH_CFG="${HOME}/.config/fish/config.fish"
+  FISH_MARKER="# agentic-quality-gate: run-qg on PATH"
+  FISH_LINE='fish_add_path -g "$HOME/.local/bin"'
+  touch "$FISH_CFG"
+  if ! grep -Fq "$FISH_MARKER" "$FISH_CFG" 2>/dev/null; then
+    {
+      echo ""
+      echo "$FISH_MARKER"
+      echo "$FISH_LINE"
+    } >> "$FISH_CFG"
+    echo "  PATH → added ~/.local/bin to ${FISH_CFG}"
+  fi
+fi
+
+# Verify the command resolves when PATH includes BIN_DIR
+if PATH="${BIN_DIR}:$PATH" command -v run-qg >/dev/null 2>&1; then
+  echo "  OK   → run-qg is available (open a new terminal, or: source ~/.zshrc)"
+else
+  echo "  warn → run-qg symlink missing; try: ls -la ${BIN_DIR}/run-qg" >&2
 fi
 
 echo ""
