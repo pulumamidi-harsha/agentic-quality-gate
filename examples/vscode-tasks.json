@@ -1,0 +1,64 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "PR Quality Gate (local)",
+      "type": "shell",
+      "command": "bash",
+      "args": [
+        "${env:AGENTIC_QUALITY_GATE_HOME}/scripts/local-gate.sh"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}",
+        "env": {
+          "AGENTIC_QUALITY_GATE_HOME": "${env:AGENTIC_QUALITY_GATE_HOME}"
+        }
+      },
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated",
+        "focus": false
+      },
+      "group": {
+        "kind": "test",
+        "isDefault": false
+      }
+    },
+    {
+      "label": "PR Quality Gate (local, staged / strict)",
+      "type": "shell",
+      "command": "bash",
+      "args": [
+        "${env:AGENTIC_QUALITY_GATE_HOME}/scripts/local-gate.sh",
+        "--staged",
+        "--strict"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated"
+      }
+    },
+    {
+      "label": "PR Quality Gate (local clone sibling)",
+      "type": "shell",
+      "command": "bash",
+      "args": [
+        "${workspaceFolder}/../agentic-quality-gate/scripts/local-gate.sh"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated"
+      },
+      "detail": "Use when agentic-quality-gate is cloned next to this app repo"
+    }
+  ]
+}

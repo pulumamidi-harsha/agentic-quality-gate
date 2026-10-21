@@ -1,0 +1,11 @@
+# Hook definitions for https://pre-commit.com when this repo is used as a remote.
+- id: agentic-quality-gate
+  name: agentic-quality-gate (local / pre-PR)
+  description: >
+    Run Sonar-replacement quality gate on staged files (Semgrep, duplication %,
+    complexity). Advisory by default; pass --strict to fail the commit.
+  entry: bash scripts/local-gate.sh --staged
+  language: system
+  pass_filenames: false
+  always_run: true
+  require_serial: true

@@ -1,0 +1,26 @@
+# Example pre-commit config for application repos.
+# Copy entries into your repo's .pre-commit-config.yaml (or merge with existing hooks).
+#
+# Install (once per machine):
+#   pip install pre-commit
+#   pre-commit install
+#
+# Pin `rev` to a full commit SHA of pulumamidi-harsha/agentic-quality-gate in production.
+
+repos:
+  - repo: https://github.com/pulumamidi-harsha/agentic-quality-gate
+    rev: main # replace with full SHA
+    hooks:
+      - id: agentic-quality-gate
+        # Advisory by default (does not block commit). For blocking:
+        # args: [--staged, --strict]
+
+  # Alternative: local path when you clone the hub next to the app
+  # - repo: local
+  #   hooks:
+  #     - id: agentic-quality-gate-local
+  #       name: agentic-quality-gate (local clone)
+  #       language: system
+  #       entry: bash ../agentic-quality-gate/scripts/local-gate.sh --staged
+  #       pass_filenames: false
+  #       always_run: true

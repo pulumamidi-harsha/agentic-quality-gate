@@ -123,6 +123,7 @@ def evaluate(
         for f in in_diff
         if f.get("severity") in (cfg.get("fail_severities") or ["error"])
         and f.get("category") not in metric_cats
+        and f.get("category") != "tooling"
     ]
     dup_blocks = [
         f

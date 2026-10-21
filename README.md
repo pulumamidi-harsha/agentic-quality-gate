@@ -36,6 +36,30 @@ Registry packs that 404 are skipped per-pack; **local hotspot rules always run**
 
 See [`examples/caller-workflow.yml`](examples/caller-workflow.yml). Pin `uses:` and `pipeline_ref` to a **full SHA**.
 
+## Local / IDE (before the PR)
+
+Same engines as CI (Semgrep, duplication %, complexity) — run while coding so
+findings show up **before** you open a PR. Coverage stays CI-only.
+
+```bash
+# from your application repo
+export AGENTIC_QUALITY_GATE_HOME=/path/to/agentic-quality-gate
+bash "$AGENTIC_QUALITY_GATE_HOME/scripts/local-gate.sh"
+bash "$AGENTIC_QUALITY_GATE_HOME/scripts/local-gate.sh" --staged    # pre-commit
+bash "$AGENTIC_QUALITY_GATE_HOME/scripts/local-gate.sh" --strict    # exit 1 on findings
+```
+
+| Integration | Example |
+|-------------|---------|
+| Terminal / Cursor | `scripts/local-gate.sh` |
+| VS Code / Cursor task | [`examples/vscode-tasks.json`](examples/vscode-tasks.json) |
+| pre-commit | [`examples/pre-commit-config.yaml`](examples/pre-commit-config.yaml) |
+| App adoption guide | [`examples/local-ide-adoption.md`](examples/local-ide-adoption.md) |
+
+Advisory by default (exit 0). CI remains the merge authority.
+
+Requires: `git`, `bash`, `python3`, `jq`, `npx` (jscpd). First Semgrep run may download packs.
+
 ## Policy
 
 - Engines / packs: `config/packages/default.yml` + `config/packages/default/rules/`
