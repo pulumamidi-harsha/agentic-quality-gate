@@ -121,10 +121,16 @@ def discover_maps(search_roots: List[Path]) -> Dict[str, Tuple[int, int]]:
                 merged.update(parse_cobertura(p))
             elif p.suffix == ".json":
                 merged.update(parse_istanbul(p))
-        # Also scan shallow for lcov.info
+        # Deep scan: phase1 may ship numbered names (0-coverage-final.json) under coverage-reports/
         if root.is_dir():
             for p in list(root.glob("**/lcov.info"))[:20]:
                 merged.update(parse_lcov(p.read_text(encoding="utf-8", errors="replace")))
+            for p in list(root.glob("**/*coverage-final.json"))[:20]:
+                merged.update(parse_istanbul(p))
+            for p in list(root.glob("**/cobertura-coverage.xml"))[:10]:
+                merged.update(parse_cobertura(p))
+            for p in list(root.glob("**/coverage.xml"))[:10]:
+                merged.update(parse_cobertura(p))
     return merged
 
 

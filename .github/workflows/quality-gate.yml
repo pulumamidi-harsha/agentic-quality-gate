@@ -107,23 +107,51 @@ jobs:
         continue-on-error: true
         run: |
           mkdir -p "${AGENTIC_TMP}/coverage" "${GITHUB_WORKSPACE}/coverage"
-          # Prefer lcov.info from phase1 collect
-          if [[ -f "${AGENTIC_TMP}/coverage-incoming/lcov.info" ]]; then
-            cp "${AGENTIC_TMP}/coverage-incoming/lcov.info" "${AGENTIC_TMP}/lcov.info"
-            cp "${AGENTIC_TMP}/coverage-incoming/lcov.info" "${AGENTIC_TMP}/coverage/lcov.info"
-            cp "${AGENTIC_TMP}/coverage-incoming/lcov.info" "${GITHUB_WORKSPACE}/coverage/lcov.info"
-            echo "Staged lcov.info from ${{ inputs.coverage_artifact }}"
-          elif [[ -d "${AGENTIC_TMP}/coverage-incoming" ]]; then
-            find "${AGENTIC_TMP}/coverage-incoming" -type f \( -name 'lcov.info' -o -name '*.info' -o -name 'coverage-final.json' -o -name '*.xml' \) \
-              | head -20 | while read -r f; do
-                cp "$f" "${AGENTIC_TMP}/$(basename "$f")"
-                cp "$f" "${AGENTIC_TMP}/coverage/$(basename "$f")" 2>/dev/null || true
-                mkdir -p "${GITHUB_WORKSPACE}/coverage"
-                cp "$f" "${GITHUB_WORKSPACE}/coverage/$(basename "$f")" 2>/dev/null || true
-                echo "Staged $f"
-              done
-          else
+          IN="${AGENTIC_TMP}/coverage-incoming"
+          stage_one() {
+            local src="$1" dest_name="$2"
+            cp "$src" "${AGENTIC_TMP}/${dest_name}"
+            cp "$src" "${AGENTIC_TMP}/coverage/${dest_name}"
+            cp "$src" "${GITHUB_WORKSPACE}/coverage/${dest_name}"
+            echo "Staged ${src} → coverage/${dest_name}"
+          }
+          # Prefer canonical names from phase1 collect (also accept numbered copies like 0-coverage-final.json)
+          if [[ -f "${IN}/lcov.info" ]]; then
+            stage_one "${IN}/lcov.info" "lcov.info"
+          elif [[ -f "${IN}/coverage-reports/lcov.info" ]]; then
+            stage_one "${IN}/coverage-reports/lcov.info" "lcov.info"
+          fi
+          if [[ -f "${IN}/coverage-final.json" ]]; then
+            stage_one "${IN}/coverage-final.json" "coverage-final.json"
+          elif [[ -f "${IN}/coverage-reports/coverage-final.json" ]]; then
+            stage_one "${IN}/coverage-reports/coverage-final.json" "coverage-final.json"
+          fi
+          if [[ -d "$IN" ]]; then
+            while IFS= read -r f; do
+              [[ -z "$f" || ! -f "$f" ]] && continue
+              base="$(basename "$f")"
+              case "$base" in
+                lcov.info|*.info)
+                  [[ -f "${AGENTIC_TMP}/coverage/lcov.info" ]] || stage_one "$f" "lcov.info"
+                  ;;
+                coverage-final.json|*coverage-final.json)
+                  [[ -f "${AGENTIC_TMP}/coverage/coverage-final.json" ]] || stage_one "$f" "coverage-final.json"
+                  ;;
+                cobertura-coverage.xml|coverage.xml|*.xml)
+                  stage_one "$f" "$base"
+                  ;;
+              esac
+            done < <(
+              find "$IN" -type f \( \
+                -name 'lcov.info' -o -name '*.info' \
+                -o -name 'coverage-final.json' -o -name '*coverage-final.json' \
+                -o -name 'cobertura-coverage.xml' -o -name 'coverage.xml' -o -name '*.xml' \
+              \) 2>/dev/null | head -40
+            )
+          fi
+          if [[ ! -f "${AGENTIC_TMP}/coverage/lcov.info" && ! -f "${AGENTIC_TMP}/coverage/coverage-final.json" ]]; then
             echo "No coverage artifact — coverage % may be skipped"
+            ls -laR "$IN" 2>/dev/null | head -40 || true
           fi
 
       - name: Run quality-gate package
