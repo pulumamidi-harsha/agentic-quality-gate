@@ -29,13 +29,34 @@ export AGENTIC_APP_ROOT="$APP_ROOT"
 echo "═══ agentic-quality-gate → this app ═══"
 echo "  App: ${APP_ROOT}"
 
-# Prefer sibling install-ide.sh when this file lives in a hub checkout;
-# otherwise fetch install-ide.sh (same one-liner UX when curled).
+# Prefer local hub scripts (no network). Else try curl; else git clone.
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" 2>/dev/null && pwd || true)"
+REPO_URL="${AGENTIC_QUALITY_GATE_REPO:-https://github.com/pulumamidi-harsha/agentic-quality-gate.git}"
+DEST="${AGENTIC_QUALITY_GATE_HOME:-$HOME/.cursor/agentic-quality-gate}"
+
+run_install_ide() {
+  local ide="$1"
+  bash "$ide"
+}
+
 if [[ -n "$HERE" && -f "${HERE}/install-ide.sh" ]]; then
-  bash "${HERE}/install-ide.sh"
+  run_install_ide "${HERE}/install-ide.sh"
+elif [[ -f "${DEST}/scripts/install-ide.sh" ]]; then
+  echo "  Using existing hub at ${DEST}"
+  run_install_ide "${DEST}/scripts/install-ide.sh"
+elif curl -fsSL "${RAW_BASE}/scripts/install-ide.sh" | bash; then
+  :
 else
-  curl -fsSL "${RAW_BASE}/scripts/install-ide.sh" | bash
+  echo "  curl to GitHub raw failed (common on some Mac/LibreSSL setups)."
+  echo "  Falling back to git clone → ${DEST}"
+  mkdir -p "$(dirname "$DEST")"
+  if [[ -d "${DEST}/.git" ]]; then
+    git -C "$DEST" pull --ff-only || true
+  else
+    rm -rf "$DEST"
+    git clone --depth=1 "$REPO_URL" "$DEST"
+  fi
+  run_install_ide "${DEST}/scripts/install-ide.sh"
 fi
 
 echo ""

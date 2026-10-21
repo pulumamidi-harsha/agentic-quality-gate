@@ -13,13 +13,23 @@ SonarQube replacement for pull requests: Semgrep hotspots, duplication %, comple
 
 ## For developers — one command per app
 
-**Do not clone this hub.** From your application repo (example: `dso-os-frontend`), paste **this one line only**:
+From your application repo (example: `dso-os-frontend`), paste **one line**.
+
+**If you already have this hub next to the app** (works offline / avoids SSL issues):
+
+```bash
+cd /path/to/dso-os-frontend && bash ../agentic-quality-gate/scripts/install-app.sh && export PATH="$HOME/.local/bin:$PATH" && hash -r
+```
+
+**Or download from GitHub** (needs working HTTPS to GitHub):
 
 ```bash
 cd /path/to/dso-os-frontend && curl -fsSL https://raw.githubusercontent.com/pulumamidi-harsha/agentic-quality-gate/main/scripts/install-app.sh | bash && export PATH="$HOME/.local/bin:$PATH" && hash -r
 ```
 
-That installs everything and enables `run-qg` **in the same terminal** (no `source`, no new tab, nothing else to remember). Future terminals get PATH from your shell config automatically.
+If `curl` fails with a TLS / LibreSSL error, use the local `bash ../agentic-quality-gate/...` line above (or `git clone` the hub once, then that line).
+
+That installs everything and enables `run-qg` **in the same terminal**. Future terminals get PATH from your shell config automatically.
 
 ### Run in the terminal (recommended — live scrolling logs)
 
