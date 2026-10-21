@@ -20,6 +20,11 @@ on:
         required: false
         type: string
         default: ""
+      coverage_artifact:
+        description: "Optional artifact from AI review phase1 (default agentic-coverage)"
+        required: false
+        type: string
+        default: "agentic-coverage"
     secrets:
       ORG_PAT:
         required: false
@@ -88,6 +93,38 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: "20"
+
+      - name: Download coverage from AI review (optional)
+        if: inputs.coverage_artifact != ''
+        continue-on-error: true
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ inputs.coverage_artifact }}
+          path: ${{ env.AGENTIC_TMP }}/coverage-incoming
+
+      - name: Stage coverage reports
+        if: always()
+        continue-on-error: true
+        run: |
+          mkdir -p "${AGENTIC_TMP}/coverage" "${GITHUB_WORKSPACE}/coverage"
+          # Prefer lcov.info from phase1 collect
+          if [[ -f "${AGENTIC_TMP}/coverage-incoming/lcov.info" ]]; then
+            cp "${AGENTIC_TMP}/coverage-incoming/lcov.info" "${AGENTIC_TMP}/lcov.info"
+            cp "${AGENTIC_TMP}/coverage-incoming/lcov.info" "${AGENTIC_TMP}/coverage/lcov.info"
+            cp "${AGENTIC_TMP}/coverage-incoming/lcov.info" "${GITHUB_WORKSPACE}/coverage/lcov.info"
+            echo "Staged lcov.info from ${{ inputs.coverage_artifact }}"
+          elif [[ -d "${AGENTIC_TMP}/coverage-incoming" ]]; then
+            find "${AGENTIC_TMP}/coverage-incoming" -type f \( -name 'lcov.info' -o -name '*.info' -o -name 'coverage-final.json' -o -name '*.xml' \) \
+              | head -20 | while read -r f; do
+                cp "$f" "${AGENTIC_TMP}/$(basename "$f")"
+                cp "$f" "${AGENTIC_TMP}/coverage/$(basename "$f")" 2>/dev/null || true
+                mkdir -p "${GITHUB_WORKSPACE}/coverage"
+                cp "$f" "${GITHUB_WORKSPACE}/coverage/$(basename "$f")" 2>/dev/null || true
+                echo "Staged $f"
+              done
+          else
+            echo "No coverage artifact — coverage % may be skipped"
+          fi
 
       - name: Run quality-gate package
         id: metrics
