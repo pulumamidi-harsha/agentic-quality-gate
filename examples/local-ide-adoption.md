@@ -1,26 +1,25 @@
 # App adoption — one command
 
-## Setup (from the app repo)
+## Setup
 
 ```bash
-cd /path/to/your-app          # e.g. dso-os-frontend
+cd /path/to/your-app
 curl -fsSL https://raw.githubusercontent.com/pulumamidi-harsha/agentic-quality-gate/main/scripts/install-app.sh | bash
 ```
 
-Restart VS Code or Cursor on that folder.
+## Run (pick one)
 
-## Daily
+**Terminal — live logs (best for watching progress):**
 
-Ask Agent: `Run the quality gate on my changes`
+```bash
+run-qg
+```
+
+**VS Code:** Terminal → Run Task… → `run-qg`
+
+**Agent chat:** type `run-qg` (good for explain/fix; may look idle until a chunk returns)
 
 ## Automatic
 
-- **push** → git pre-push hook runs the gate (`--strict`)
-- **PR** → GitHub Quality Gate workflow (commit `.github/workflows/quality-gate.yml` if the installer added it)
-
-## Pilot checklist
-
-- [ ] Ran `install-app.sh` from the app root
-- [ ] Restarted IDE → Agent quality gate works
-- [ ] `git push` runs the gate (or fails with findings)
-- [ ] PR workflow present and pinned to a hub SHA
+- **push** → pre-push hook (`run-qg --strict`)
+- **PR** → GitHub Quality Gate workflow

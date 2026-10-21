@@ -1,18 +1,18 @@
 ---
 name: quality-gate
 description: >-
-  Run the agentic-quality-gate Sonar-replacement checks on local changes before
-  opening a PR. Use when the user asks to check quality, scan for hotspots,
-  pre-PR review, Semgrep, duplication, complexity, or Sonar-like issues in the IDE.
+  Run agentic-quality-gate (Sonar-replacement) on local changes. Trigger on
+  run-qg, /run-qg, "run qg", quality gate, pre-PR scan, Semgrep, hotspots,
+  duplication, complexity, or Sonar-like checks in the IDE.
 ---
 
 # Quality gate (pre-PR)
 
 ## When to use
 
-- User asks to run quality gate / Sonar checks / pre-PR scan
+- User types **`run-qg`** (preferred short form) or `/run-qg` or “run qg”
+- User asks for quality gate / Sonar / pre-PR / hotspots / duplication / complexity
 - User is about to open a pull request
-- User wants security hotspots, duplication, or complexity on current changes
 
 ## How to run
 
@@ -25,16 +25,16 @@ Use MCP tool `run_quality_gate` from server **agentic-quality-gate**:
 **Live progress (required):** The tool returns in short chunks so the user is not
 left staring at a silent spinner.
 
-1. Tell the user: “Starting the quality gate — I’ll stream the log while it runs.”
+1. Tell the user: “Starting the quality gate (`run-qg`) — streaming the log…”
 2. Call `run_quality_gate`.
 3. If the reply starts with `## Quality gate progress`, **show the ## Live log
    to the user**, then call `run_quality_gate` again with the **same** arguments.
 4. Repeat until the reply starts with `# Quality gate` (final report).
 
-If MCP is missing, tell the user to run once:
+If MCP is missing, tell the user to run once from the app repo:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/pulumamidi-harsha/agentic-quality-gate/main/scripts/install-ide.sh | bash
+curl -fsSL https://raw.githubusercontent.com/pulumamidi-harsha/agentic-quality-gate/main/scripts/install-app.sh | bash
 ```
 
 then restart the IDE — do not fall back to other install paths.

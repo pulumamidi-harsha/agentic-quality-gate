@@ -18,6 +18,7 @@ mcp = FastMCP(
     "agentic-quality-gate",
     instructions=(
         "Sonar-replacement quality gate for the current workspace. "
+        "Users usually type run-qg (short for run quality gate). "
         "Call run_quality_gate repeatedly until the reply starts with "
         "'# Quality gate'. Between calls, show the user the ## Live log "
         "lines so they see activity (like a build). Explain final findings "
@@ -26,7 +27,7 @@ mcp = FastMCP(
 )
 
 JOB_TIMEOUT_SEC = 600
-POLL_WAIT_SEC = 8
+POLL_WAIT_SEC = 3  # short chunks so Agent can show logs in chat more often
 MAX_LOG_CHUNK = 40
 
 
@@ -512,7 +513,7 @@ def quality_gate_status() -> str:
             "local_gate": str(script),
             "cache": str(_cache_dir()),
             "hint": (
-                "Ask: Run the quality gate on my changes. "
+                "Ask: run-qg. "
                 "Agent will call run_quality_gate repeatedly and show live logs."
             ),
         },

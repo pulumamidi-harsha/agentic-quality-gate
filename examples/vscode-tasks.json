@@ -2,63 +2,55 @@
   "version": "2.0.0",
   "tasks": [
     {
-      "label": "PR Quality Gate (local)",
+      "label": "run-qg",
       "type": "shell",
       "command": "bash",
       "args": [
-        "${env:AGENTIC_QUALITY_GATE_HOME}/scripts/local-gate.sh"
+        "${env:HOME}/.cursor/agentic-quality-gate/scripts/run-qg.sh"
       ],
       "options": {
         "cwd": "${workspaceFolder}",
         "env": {
-          "AGENTIC_QUALITY_GATE_HOME": "${env:AGENTIC_QUALITY_GATE_HOME}"
+          "AGENTIC_QUALITY_GATE_HOME": "${env:HOME}/.cursor/agentic-quality-gate",
+          "PYTHONUNBUFFERED": "1"
         }
       },
       "problemMatcher": [],
       "presentation": {
         "reveal": "always",
         "panel": "dedicated",
-        "focus": false
+        "focus": true,
+        "echo": true,
+        "showReuseMessage": false
       },
       "group": {
         "kind": "test",
-        "isDefault": false
-      }
+        "isDefault": true
+      },
+      "detail": "Live quality gate in the Terminal panel (scrollable logs)"
     },
     {
-      "label": "PR Quality Gate (local, staged / strict)",
+      "label": "run-qg (strict)",
       "type": "shell",
       "command": "bash",
       "args": [
-        "${env:AGENTIC_QUALITY_GATE_HOME}/scripts/local-gate.sh",
-        "--staged",
+        "${env:HOME}/.cursor/agentic-quality-gate/scripts/run-qg.sh",
         "--strict"
       ],
       "options": {
-        "cwd": "${workspaceFolder}"
+        "cwd": "${workspaceFolder}",
+        "env": {
+          "AGENTIC_QUALITY_GATE_HOME": "${env:HOME}/.cursor/agentic-quality-gate",
+          "PYTHONUNBUFFERED": "1"
+        }
       },
       "problemMatcher": [],
       "presentation": {
         "reveal": "always",
-        "panel": "dedicated"
-      }
-    },
-    {
-      "label": "PR Quality Gate (local clone sibling)",
-      "type": "shell",
-      "command": "bash",
-      "args": [
-        "${workspaceFolder}/../agentic-quality-gate/scripts/local-gate.sh"
-      ],
-      "options": {
-        "cwd": "${workspaceFolder}"
+        "panel": "dedicated",
+        "focus": true
       },
-      "problemMatcher": [],
-      "presentation": {
-        "reveal": "always",
-        "panel": "dedicated"
-      },
-      "detail": "Use when agentic-quality-gate is cloned next to this app repo"
+      "detail": "Same as run-qg but exit 1 on fail (matches pre-push)"
     }
   ]
 }

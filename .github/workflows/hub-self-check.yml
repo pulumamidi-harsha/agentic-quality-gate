@@ -64,6 +64,7 @@ jobs:
             scripts/install-cursor.sh
             scripts/install-ide.sh
             scripts/install-app.sh
+            scripts/run-qg.sh
             scripts/run-semgrep.sh
             scripts/run-jscpd.sh
             scripts/run-lizard.sh

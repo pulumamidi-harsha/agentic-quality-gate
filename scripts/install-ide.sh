@@ -203,17 +203,28 @@ if [[ -n "$APP_ROOT" && -d "$APP_ROOT/.git" ]]; then
 # agentic-quality-gate — block push when the local quality gate fails
 set -euo pipefail
 HUB="\${AGENTIC_QUALITY_GATE_HOME:-\$HOME/.cursor/agentic-quality-gate}"
+RUN_QG="\${HUB}/scripts/run-qg.sh"
 GATE="\${HUB}/scripts/local-gate.sh"
-if [[ ! -x "\$GATE" && ! -f "\$GATE" ]]; then
+if [[ -f "\$RUN_QG" ]]; then
+  echo "═══ agentic-quality-gate (pre-push) ═══"
+  exec bash "\$RUN_QG" --base "\${AGENTIC_GATE_BASE:-main}" --strict
+fi
+if [[ ! -f "\$GATE" ]]; then
   echo "agentic-quality-gate: missing \$GATE — re-run install-app.sh" >&2
   exit 1
 fi
 echo "═══ agentic-quality-gate (pre-push) ═══"
-# --strict: push fails when gate status is warn/fail or a scanner fails
 exec bash "\$GATE" --base "\${AGENTIC_GATE_BASE:-main}" --strict
 HOOK
   chmod +x "$HOOK"
   echo "  git pre-push hook → ${HOOK}"
+
+  # VS Code: Terminal → Run Task → run-qg (live scrolling logs)
+  if [[ -f "${DEST}/examples/vscode-tasks.json" ]]; then
+    mkdir -p "${APP_ROOT}/.vscode"
+    cp "${DEST}/examples/vscode-tasks.json" "${APP_ROOT}/.vscode/tasks.json"
+    echo "  VS Code task → ${APP_ROOT}/.vscode/tasks.json  (Run Task → run-qg)"
+  fi
 
   # PR CI workflow if missing (merge authority on GitHub)
   WF_DIR="${APP_ROOT}/.github/workflows"
@@ -225,15 +236,27 @@ HOOK
   fi
 fi
 
+# User-space CLI: ~/.local/bin/run-qg → live terminal logs
+BIN_DIR="${HOME}/.local/bin"
+mkdir -p "$BIN_DIR"
+ln -sfn "${DEST}/scripts/run-qg.sh" "${BIN_DIR}/run-qg"
+chmod +x "${DEST}/scripts/run-qg.sh" "${BIN_DIR}/run-qg"
+echo "  CLI → ${BIN_DIR}/run-qg"
+if [[ ":$PATH:" != *":${BIN_DIR}:"* ]]; then
+  echo "  Note: add ${BIN_DIR} to PATH if 'run-qg' is not found:"
+  echo "    echo 'export PATH=\"\$HOME/.local/bin:\$PATH\"' >> ~/.zshrc && source ~/.zshrc"
+fi
+
 echo ""
 echo "Done. No need to keep a separate clone of the hub."
 if [[ -n "$APP_ROOT" ]]; then
   echo ""
   echo "This app is ready:"
   echo "  ${APP_ROOT}"
-  echo "  • .vscode/mcp.json  (VS Code MCP)"
-  echo "  • git pre-push hook (runs gate on every push)"
-  echo "  • restart IDE → ask: Run the quality gate on my changes"
+  echo "  • Terminal (live logs):  run-qg"
+  echo "  • VS Code task: Run Task → run-qg"
+  echo "  • Agent chat: type run-qg"
+  echo "  • git pre-push hook on every push"
 else
   echo ""
   echo "Laptop hub installed. To wire an app in one command:"

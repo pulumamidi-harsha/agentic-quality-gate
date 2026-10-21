@@ -9,6 +9,6 @@ cd /path/to/your-app
 curl -fsSL https://raw.githubusercontent.com/pulumamidi-harsha/agentic-quality-gate/main/scripts/install-app.sh | bash
 ```
 
-Restart the IDE → ask Agent: `Run the quality gate on my changes`
+Restart the IDE → ask Agent: `run-qg`
 
 Full steps: [../README.md](../README.md).
