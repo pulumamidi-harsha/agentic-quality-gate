@@ -1,64 +1,39 @@
-# IDE adoption (Cursor) — app repos
+# IDE adoption — MCP + Agent
 
-Goal: developers see quality-gate findings **before** opening a PR, with
-**almost no setup pain** and **no admin rights**.
+One path for every developer: **MCP + Agent**. No repo clone. No admin. No marketplace extension.
 
-## Recommended (all developers)
-
-### 1. One-time laptop setup
+## Once per laptop
 
 ```bash
-git clone https://github.com/pulumamidi-harsha/agentic-quality-gate.git
-cd agentic-quality-gate
-bash scripts/install-cursor.sh
-# Restart Cursor
+curl -fsSL https://raw.githubusercontent.com/pulumamidi-harsha/agentic-quality-gate/main/scripts/install-ide.sh | bash
 ```
 
-- Installs under `~/.cursor/agentic-quality-gate` (user home)
-- Registers MCP in `~/.cursor/mcp.json`
-- Caches tools under `~/.cache/agentic-quality-gate`
-- No `sudo`, no corporate marketplace extension
+Restart Cursor or VS Code.
 
-### 2. Daily use
+## Every day
 
-Open your app (e.g. `dso-os-frontend`) in Cursor and ask Agent:
+1. Open your **app** repo.
+2. Ask Agent: `Run the quality gate on my changes`
+3. Fix findings in chat (what / why / how to fix).
 
-> Run the quality gate on my changes
+**VS Code only:** once per app, copy  
+`~/.cursor/agentic-quality-gate/examples/vscode-mcp.json` → `.vscode/mcp.json`, then restart.
 
-Agent uses MCP `run_quality_gate` → Semgrep hotspots, duplication %, complexity
-→ explains What / Why / How to fix.
-
-### 3. Optional auto-trigger in a repo
+## Optional (Cursor): auto-hint in an app
 
 ```bash
 mkdir -p .cursor/skills/quality-gate
-cp /path/to/agentic-quality-gate/examples/cursor-skill/SKILL.md \
+cp ~/.cursor/agentic-quality-gate/examples/cursor-skill/SKILL.md \
   .cursor/skills/quality-gate/
 ```
 
-### 4. Keep PR CI
+## Keep PR CI
 
-Do **not** remove `.github/workflows/quality-gate.yml`. CI remains merge authority.
+Do not remove `.github/workflows/quality-gate.yml`. Local MCP is early feedback; PR CI is merge authority.
 
-## Pilot checklist (`dso-os-frontend`)
+## Pilot checklist
 
-- [ ] Each developer ran `install-cursor.sh` once + restarted Cursor
-- [ ] Ask Agent: “Run the quality gate on my changes” on a branch with the seed file
-- [ ] Optional: commit `.cursor/skills/quality-gate/SKILL.md`
-- [ ] PR workflow still pinned to hub SHA
-
-## What is covered vs PR CI
-
-| Check | Cursor MCP | PR CI |
-|-------|------------|-------|
-| Semgrep hotspots | yes | yes |
-| Duplication % | yes | yes |
-| Complexity | yes | yes |
-| Coverage | no | when lcov present |
-| PR comments | no (chat) | yes |
-
-## Advanced (not required)
-
-- CLI: `scripts/local-gate.sh`
-- pre-commit: `examples/pre-commit-config.yaml`
-- VS Code tasks: `examples/vscode-tasks.json`
+- [ ] Ran `curl … install-ide.sh | bash` once + restarted IDE
+- [ ] Asked Agent: “Run the quality gate on my changes”
+- [ ] (VS Code) App has `.vscode/mcp.json` from the install template
+- [ ] PR workflow still pinned to a hub SHA

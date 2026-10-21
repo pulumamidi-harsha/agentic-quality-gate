@@ -1,74 +1,69 @@
 # agentic-quality-gate
 
-**SonarQube replacement for PRs** — multi-language Semgrep hotspots, Sonar-style
-duplication %, complexity, coverage, peer-style line comments.
+SonarQube replacement for pull requests: Semgrep hotspots, duplication %, complexity, coverage, and peer-style PR comments.
 
-**No AI.** Completely isolated from [`agentic-review`](https://github.com/pulumamidi-harsha/agentic-review).
+**No AI in this hub.** AI review lives in a separate repo: [`agentic-review`](https://github.com/pulumamidi-harsha/agentic-review).
 
-## Two hubs (separate jobs)
-
-| Folder / repo | Workflow job | Responsibility |
-|---------------|--------------|----------------|
-| **agentic-quality-gate** (this) | `PR Quality Gate` | Sonar replacement only |
+| Hub | Job | What it does |
+|-----|-----|--------------|
+| **agentic-quality-gate** (this) | `PR Quality Gate` | Sonar-style quality checks |
 | **agentic-review** | `AI PR Review` | AI review only |
 
-## IDE / during coding — recommended (Cursor or VS Code)
+---
 
-Problem statement includes checks **while coding** in the **IDE**. Use **Agent + MCP**
-(futuristic, explains findings in chat). No admin. **You do not need to clone this repo.**
+## For developers: check quality in your IDE
 
-### Setup (once per laptop)
+Use **MCP + Agent** (Cursor or VS Code). One install. No admin. **Do not clone this repo.**
+
+### Step 1 — Install once (any laptop)
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/pulumamidi-harsha/agentic-quality-gate/main/scripts/install-ide.sh | bash
 ```
 
-- Installs under `~/.cursor/agentic-quality-gate` (auto git clone/update)
-- Registers Cursor MCP in `~/.cursor/mcp.json`
-- Writes VS Code template at `~/.cursor/agentic-quality-gate/examples/vscode-mcp.json`
-- Cache: `~/.cache/agentic-quality-gate`
+Then **restart** your IDE.
 
-### Daily use
+### Step 2 — Run the gate on your app
 
-| IDE | What to do |
-|-----|------------|
-| **Cursor** | Restart → open app repo → ask Agent: `Run the quality gate on my changes` |
-| **VS Code** | Copy `examples/vscode-mcp.json` → app `.vscode/mcp.json` → restart → Copilot Chat (Agent): same ask |
+Open your **application** repo (not this hub). In Agent chat, say:
 
-Same engines as PR CI (Semgrep, duplication %, complexity). Coverage stays CI-only.
+```text
+Run the quality gate on my changes
+```
 
-### Why MCP + Agent (not a classic marketplace extension)?
+| IDE | Extra step (once per app, VS Code only) |
+|-----|----------------------------------------|
+| **Cursor** | None — MCP is already registered |
+| **VS Code** | Copy `~/.cursor/agentic-quality-gate/examples/vscode-mcp.json` to your app’s `.vscode/mcp.json`, then restart |
 
-Corporate laptops often block extensions or need admin. MCP runs user-space and matches
-the problem statement (explain / prioritize in chat).
+### Step 3 — Fix what Agent reports
 
-## PR CI (merge authority)
+Agent calls the quality-gate MCP tool and explains findings (what / why / how to fix). Same engines as PR CI for Semgrep, duplication %, and complexity. Coverage stays CI-only.
 
-Thin caller in each app — see [`examples/caller-workflow.yml`](examples/caller-workflow.yml).
-Pin `uses:` and `pipeline_ref` to a **full SHA**.
+To update the install later, run the same `curl … | bash` again.
 
-## What it runs
+---
 
-| Surface | Semgrep | Duplication % | Complexity | Coverage |
-|---------|---------|---------------|------------|----------|
-| Cursor MCP / local | yes | yes | yes | no (CI-only) |
-| GitHub PR workflow | yes | yes | yes | when lcov present |
+## For app repos: PR CI (merge authority)
 
-Stacks: TypeScript/JavaScript/React/Node, Python, Go, Java/Spring, Kotlin, C#, Ruby, PHP,
-Rust, Terraform, Docker, Kubernetes/Helm, Ansible, Bash, SQL, and more.
+Add a thin workflow that calls this hub — see [`examples/caller-workflow.yml`](examples/caller-workflow.yml).
 
-## Policy
+Pin `uses:` and `pipeline_ref` to a **full commit SHA**. Keep that workflow even when developers use MCP locally; GitHub remains the merge authority.
 
-- Engines: `config/packages/default.yml` + `config/packages/default/rules/`
-- Pass/fail: `config/quality-gate.yml` (`AGENTIC_GATE_MODE=advisory|soft_fail|hard_fail`)
-- Fail-closed in CI if an enabled scanner cannot run
+Skip labels (CI): `skip-quality-gate`, `skip-ai-review`, or `no-review`.
 
-## Advanced (optional)
+---
 
-Power users / automation can still call [`scripts/local-gate.sh`](scripts/local-gate.sh)
-or [`examples/pre-commit-config.yaml`](examples/pre-commit-config.yaml). Not required for
-normal Cursor developers.
+## What runs where
 
-## Skip (CI)
+| Check | IDE (MCP + Agent) | GitHub PR |
+|-------|-------------------|-----------|
+| Semgrep hotspots | yes | yes |
+| Duplication % | yes | yes |
+| Complexity | yes | yes |
+| Coverage | no | when `lcov` is present |
+| Line comments on the PR | no (chat only) | yes |
 
-PR labels: `skip-quality-gate`, `skip-ai-review`, or `no-review`.
+Languages and stacks: TypeScript/JavaScript/React/Node, Python, Go, Java/Spring, Kotlin, C#, Ruby, PHP, Rust, Terraform, Docker, Kubernetes/Helm, Ansible, Bash, SQL, and more.
+
+Policy lives in `config/packages/default.yml`, `config/packages/default/rules/`, and `config/quality-gate.yml` (`AGENTIC_GATE_MODE=advisory|soft_fail|hard_fail`). CI fails closed if an enabled scanner cannot run.

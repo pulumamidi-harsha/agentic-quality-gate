@@ -16,17 +16,19 @@ description: >-
 
 ## How to run
 
-1. Prefer the MCP tool `run_quality_gate` from server **agentic-quality-gate**:
-   - `workspace_path`: absolute path to the app repo root
-   - `base`: usually `main`
-   - `staged`: false (unless they only want staged files)
-2. If MCP is unavailable, run:
+Use the MCP tool `run_quality_gate` from server **agentic-quality-gate**:
 
-   ```bash
-   bash "$HOME/.cursor/agentic-quality-gate/scripts/local-gate.sh" --json
-   ```
+- `workspace_path`: absolute path to the app repo root
+- `base`: usually `main`
+- `staged`: false (unless they only want staged files)
 
-   from the app repo (still user-space; no admin).
+If MCP is missing, tell the user to run once:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/pulumamidi-harsha/agentic-quality-gate/main/scripts/install-ide.sh | bash
+```
+
+then restart the IDE — do not fall back to other install paths.
 
 ## How to respond
 
