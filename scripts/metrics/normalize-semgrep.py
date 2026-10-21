@@ -142,6 +142,17 @@ def main() -> int:
         return 0
 
     findings = normalize(raw if isinstance(raw, dict) else {"results": []}, changed)
+    # Deduplicate (same rule + path + line from overlapping patterns)
+    deduped: list[dict[str, Any]] = []
+    seen_fp: set[str] = set()
+    for f in findings:
+        fp = f"{f.get('rule_id')}:{f.get('path')}:{f.get('start_line') or 0}"
+        if fp in seen_fp:
+            continue
+        seen_fp.add(fp)
+        f["fingerprint"] = f.get("fingerprint") or fp
+        deduped.append(f)
+    findings = deduped
     Path(out_path).write_text(json.dumps(findings, indent=2) + "\n", encoding="utf-8")
     in_diff = sum(1 for f in findings if f.get("in_pr_diff"))
     print(f"  Normalized Semgrep: {len(findings)} findings ({in_diff} in PR diff)")

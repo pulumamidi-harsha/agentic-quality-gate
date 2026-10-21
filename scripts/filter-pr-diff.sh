@@ -7,6 +7,10 @@ OUT="${AGENTIC_TMP}/pr-changed-files.txt"
 mkdir -p "$AGENTIC_TMP"
 
 BASE_REF="${GITHUB_BASE_REF:-main}"
+# Ensure base ref exists (PR checkouts often lack origin/<base> until fetched).
+if ! git rev-parse --verify "origin/${BASE_REF}" >/dev/null 2>&1; then
+  git fetch --no-tags --depth=1 origin "${BASE_REF}:refs/remotes/origin/${BASE_REF}" 2>/dev/null || true
+fi
 # Prefer origin/base...HEAD; fall back to merge-base with HEAD~ if shallow.
 if git rev-parse --verify "origin/${BASE_REF}" >/dev/null 2>&1; then
   git diff --name-only "origin/${BASE_REF}...HEAD" 2>/dev/null | sort -u > "$OUT" || true

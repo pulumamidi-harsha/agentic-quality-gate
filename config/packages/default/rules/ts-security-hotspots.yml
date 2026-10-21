@@ -99,6 +99,11 @@ rules:
         (2) Allow-list the binary and validate every argument
         (3) Never pass request/query/AI output into a shell string
     pattern-either:
+      # Explicit template-literal form (common: exec(`cmd ${user}`))
+      - pattern: exec(`...${$X}...`, ...)
+      - pattern: execSync(`...${$X}...`, ...)
+      - pattern: $CP.exec(`...${$X}...`, ...)
+      - pattern: $CP.execSync(`...${$X}...`, ...)
       - patterns:
           - pattern-either:
               - pattern: exec($CMD, ...)
@@ -120,7 +125,8 @@ rules:
       MD5 / SHA-1 are weak for security-sensitive hashing (passwords, tokens,
       integrity). Use SHA-256+ or a password KDF (bcrypt / scrypt / argon2).
     languages: [typescript, javascript]
-    severity: WARNING
+    # ERROR so Sonar-parity hotspots (S4790) surface in the gate, not only as warn
+    severity: ERROR
     metadata:
       category: security
       cwe: ["CWE-328"]

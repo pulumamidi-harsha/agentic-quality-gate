@@ -98,11 +98,21 @@ def evaluate(
     in_diff = [f for f in findings if f.get("in_pr_diff")]
     # Secrets: count any (even outside PR hunk) — leaked creds must not merge
     secrets_in_diff = [f for f in findings if f.get("category") == "secret"]
+    # Sonar-style security hotspots (eval / XSS / cmd injection / weak crypto / …)
+    security_hotspots = [f for f in in_diff if f.get("category") == "security"]
+    # Other error-severity bugs (exclude metrics categories + security/secrets)
+    metric_cats = {
+        "secret",
+        "security",
+        "complexity",
+        "duplication",
+        "coverage",
+    }
     errors_in_diff = [
         f
         for f in in_diff
         if f.get("severity") in (cfg.get("fail_severities") or ["error"])
-        and f.get("category") != "secret"
+        and f.get("category") not in metric_cats
     ]
     dup_findings = [
         f for f in in_diff if f.get("category") == "duplication"
@@ -124,7 +134,7 @@ def evaluate(
         for f in in_diff
         if f.get("severity") == "warning"
         and f.get("category")
-        not in {"duplication", "coverage", "complexity", "secret"}
+        not in {"duplication", "coverage", "complexity", "secret", "security"}
     ]
 
     fail_reasons: List[str] = []
@@ -132,6 +142,10 @@ def evaluate(
 
     if cfg.get("fail_on_secrets") and secrets_in_diff:
         fail_reasons.append(f"{len(secrets_in_diff)} secret finding(s)")
+    if security_hotspots:
+        fail_reasons.append(
+            f"{len(security_hotspots)} security hotspot(s) in PR diff"
+        )
     if errors_in_diff:
         fail_reasons.append(
             f"{len(errors_in_diff)} error-severity finding(s) in PR diff"
@@ -219,6 +233,7 @@ def evaluate(
             "errors_in_diff": len(errors_in_diff),
             "warnings_in_diff": sum(1 for f in in_diff if f.get("severity") == "warning"),
             "secrets": len(secrets_in_diff),
+            "security_hotspots": len(security_hotspots),
             "duplication": len(dup_findings),
             "coverage": len(cov_findings),
             "complexity": len(complexity),
@@ -237,14 +252,19 @@ def _condition_lines(result: Dict[str, Any], findings: List[Dict[str, Any]]) -> 
     status = result["status"]
     mark_fail = "❌" if status == "fail" else "⚠️"
 
-    if c.get("errors_in_diff", 0) > 0:
+    if c.get("security_hotspots", 0) > 0:
         out.append(
-            f"- {mark_fail} **{c['errors_in_diff']}** new error-severity issue(s) "
+            f"- {mark_fail} **{c['security_hotspots']}** Security Hotspot(s) "
             f"(required = **0**)"
         )
     if c.get("secrets", 0) > 0:
         out.append(
             f"- {mark_fail} **{c['secrets']}** secret(s) in changed code "
+            f"(required = **0**)"
+        )
+    if c.get("errors_in_diff", 0) > 0:
+        out.append(
+            f"- {mark_fail} **{c['errors_in_diff']}** new error-severity issue(s) "
             f"(required = **0**)"
         )
     if c.get("complexity", 0) > 0:

@@ -103,17 +103,19 @@ agentic_log "  Targets: ${#TARGETS[@]} path(s)"
 agentic_log "  Local rule paths: ${#LOCAL_CONFIGS[@]}"
 
 # Load isolated install env from install-semgrep.sh (same metrics job).
+# Semgrep ≥1.38: `python3 -m semgrep` exits 2 with no JSON — use the binary.
 SEMGREP_ENV="${AGENTIC_TMP}/semgrep.env"
 if [[ -f "$SEMGREP_ENV" ]]; then
   # shellcheck disable=SC1090
   source "$SEMGREP_ENV"
 fi
-SEMGREP=(python3 -m semgrep)
-if ! python3 -m semgrep --version >/dev/null 2>&1; then
+if ! command -v semgrep >/dev/null 2>&1; then
   agentic_log "  ⚠ Semgrep CLI unavailable — writing empty results"
   echo '{"results":[]}' > "$RAW"
   exit 0
 fi
+SEMGREP=(semgrep)
+agentic_log "  Using: $(command -v semgrep) ($(semgrep --version 2>/dev/null | head -1))"
 
 json_usable() {
   python3 - "$1" <<'PY'

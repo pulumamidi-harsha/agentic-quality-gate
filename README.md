@@ -15,7 +15,7 @@ Consumer repos add **two caller YAML files** if they want both — never one com
 
 ## What it runs (PR-scoped)
 
-- Semgrep (language packs + package rules: eval, XSS, secrets, cmd injection, …)
+- Semgrep via `semgrep` CLI (not `python -m`) + package rules: eval, XSS, secrets, cmd injection, weak hash, …
 - jscpd (duplication)
 - Lizard (complexity)
 - Coverage gate (when reports exist)
