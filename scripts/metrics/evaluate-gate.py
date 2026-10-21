@@ -297,11 +297,11 @@ def _condition_lines(result: Dict[str, Any], findings: List[Dict[str, Any]]) -> 
 
 
 def render_md(result: Dict[str, Any], findings: List[Dict[str, Any]]) -> str:
+    """Compact PR summary — details live on line comments only."""
     status = result["status"]
     mode = result["mode"]
     blocking = result["blocking"]
     emoji = {"pass": "✅", "warn": "⚠️", "fail": "❌"}.get(status, "ℹ️")
-    c = result["counts"]
     title = "Quality gate"
     if mode == "advisory":
         title += " (advisory)"
@@ -327,68 +327,6 @@ def render_md(result: Dict[str, Any], findings: List[Dict[str, Any]]) -> str:
         lines.append("_All quality-gate conditions passed for this PR._")
         lines.append("")
 
-    lines += [
-        "| Metric | Count |",
-        "|--------|------:|",
-        f"| Findings (all) | {c['findings_total']} |",
-        f"| In PR diff | {c['in_pr_diff']} |",
-        f"| Errors in diff | {c['errors_in_diff']} |",
-        f"| Secrets | {c['secrets']} |",
-        f"| Duplication | {c['duplication']} |",
-        f"| Coverage | {c['coverage']} |",
-        f"| Complexity | {c['complexity']} |",
-        f"| Engines | {', '.join(result.get('engines') or []) or '—'} |",
-        "",
-    ]
-
-    top = sorted(
-        findings,
-        key=lambda f: (not f.get("in_pr_diff"), f.get("severity") != "error"),
-    )[:20]
-    lineable = [f for f in top if f.get("path") and f.get("start_line")]
-    summary_only = [f for f in top if not (f.get("path") and f.get("start_line"))]
-
-    if lineable:
-        lines += [
-            "#### Issues (open **Files changed** for line comments)",
-            "",
-            "| Sev | Where | What | How to fix |",
-            "|:---:|-------|------|------------|",
-        ]
-        for f in lineable:
-            sev = f.get("severity", "info")
-            loc = f"{f.get('path')}:{f['start_line']}"
-            msg = (f.get("message") or "").replace("|", "\\|").replace("\n", " ")[:140]
-            fix = (f.get("remediation") or "See inline comment.").replace("|", "\\|").replace(
-                "\n", " "
-            )[:160]
-            badge = "🔴" if sev == "error" else ("🟡" if sev == "warning" else "ℹ️")
-            lines.append(f"| {badge} | `{loc}` | {msg} | {fix} |")
-        lines.append("")
-
-    if summary_only:
-        lines += [
-            "#### Other findings",
-            "",
-        ]
-        for f in summary_only:
-            sev = f.get("severity", "info")
-            badge = "🔴" if sev == "error" else ("🟡" if sev == "warning" else "ℹ️")
-            msg = (f.get("message") or "").replace("\n", " ")
-            fix = f.get("remediation") or ""
-            lines.append(f"- {badge} **{f.get('engine')}** — {msg}")
-            if fix:
-                lines.append(f"  - 💡 {fix}")
-        lines.append("")
-
-    if lineable:
-        lines.append(
-            "_Peer-style review comments are posted on the exact lines in "
-            "**Files changed**._"
-        )
-        lines.append("")
-
-    lines.append(f"_{result.get('note', '')}_")
     return "\n".join(lines) + "\n"
 
 

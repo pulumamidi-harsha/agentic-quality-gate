@@ -242,13 +242,13 @@ jobs:
               return;
             }
             try {
+              // No review body — the single issue comment holds the summary
               await github.rest.pulls.createReview({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
                 pull_number: context.issue.number,
                 commit_id: headSha,
                 event: 'COMMENT',
-                body: `_Quality gate posted **${inlineComments.length}** line comment(s). See summary comment for Failed conditions._`,
                 comments: inlineComments
               });
               core.info(`Posted ${inlineComments.length} inline finding comment(s)`);

@@ -19,7 +19,7 @@ Consumer repos add **two caller YAML files** if they want both — never one com
 - jscpd (duplication)
 - Lizard (complexity)
 - Coverage gate (when reports exist)
-- Failed-conditions summary + collapsed How-to-fix line comments
+- One short Failed-conditions summary + collapsed How-to-fix line comments (no duplicate issues table)
 
 ## Caller (minimal)
 

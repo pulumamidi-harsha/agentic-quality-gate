@@ -1,5 +1,6 @@
 /**
- * PR summary comment for the Sonar-replacement quality gate (no AI).
+ * Compact PR summary for the Sonar-replacement quality gate (no AI).
+ * Details live on peer-style line comments only — no duplicate issues table.
  */
 const fs = require('fs');
 const path = require('path');
@@ -37,28 +38,17 @@ try {
 
 const gateFindings = loadFindingsBundle(AGENTIC_TMP);
 const inlineComments = buildInlineComments(gateFindings);
-
-const status = gateResult.status || 'n/a';
-const mode = gateResult.mode || 'advisory';
-const emoji = { pass: '✅', warn: '⚠️', fail: '❌' }[status] || 'ℹ️';
-const runUrl =
-  process.env.GITHUB_SERVER_URL && process.env.GITHUB_REPOSITORY && process.env.GITHUB_RUN_ID
-    ? `${process.env.GITHUB_SERVER_URL}/${process.env.GITHUB_REPOSITORY}/actions/runs/${process.env.GITHUB_RUN_ID}`
-    : null;
+const n = inlineComments.length;
 
 const body = [
   COMMENT_MARKER,
-  `## ${emoji} PR Quality Gate — \`${status}\``,
-  '',
-  `**Mode:** \`${mode}\` · **Blocking:** \`${gateResult.blocking ? 'yes' : 'no'}\``,
-  runUrl ? `**Workflow:** [View run](${runUrl})` : '',
+  n > 0
+    ? `Quality gate posted **${n}** line comment(s). Details are on the exact lines in **Files changed**.`
+    : 'Quality gate posted **0** line comment(s).',
   '',
   qualityGateMd || '_No quality-gate.md produced._',
-  '',
-  '---',
-  '<sub><a href="https://github.com/pulumamidi-harsha/agentic-quality-gate">agentic-quality-gate</a> · Sonar-replacement metrics (no AI)</sub>',
 ]
-  .filter(Boolean)
+  .filter((line, i, arr) => !(line === '' && arr[i - 1] === ''))
   .join('\n');
 
 module.exports = {
