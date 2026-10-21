@@ -1,0 +1,47 @@
+# Terraform / HCL security hotspots (Sonar-parity for infra PRs).
+rules:
+  - id: agentic.terraform.security.open-sg-ingress
+    message: >
+      Security group ingress open to 0.0.0.0/0 is a high-risk hotspot — restrict
+      CIDRs to known networks.
+    languages: [hcl, terraform]
+    severity: ERROR
+    metadata:
+      category: security
+      cwe: ["CWE-284"]
+      agentic_fix: |
+        (1) Replace 0.0.0.0/0 with least-privilege CIDRs
+        (2) Prefer private subnets / VPN / prefix lists
+    patterns:
+      - pattern-either:
+          - pattern: |
+              cidr_blocks = ["0.0.0.0/0"]
+          - pattern: |
+              cidr_blocks = [..., "0.0.0.0/0", ...]
+          - pattern: |
+              ipv6_cidr_blocks = ["::/0"]
+
+  - id: agentic.terraform.security.public-acl
+    message: >
+      S3 ACL public-read / public-read-write exposes data. Prefer private buckets
+      + controlled IAM / bucket policies.
+    languages: [hcl, terraform]
+    severity: ERROR
+    metadata:
+      category: security
+      cwe: ["CWE-284"]
+    pattern-either:
+      - pattern: acl = "public-read"
+      - pattern: acl = "public-read-write"
+
+  - id: agentic.terraform.security.unencrypted_storage
+    message: >
+      Block storage / RDS without encryption is a security hotspot for regulated data.
+    languages: [hcl, terraform]
+    severity: WARNING
+    metadata:
+      category: security
+      cwe: ["CWE-311"]
+    pattern-either:
+      - pattern: encrypted = false
+      - pattern: storage_encrypted = false

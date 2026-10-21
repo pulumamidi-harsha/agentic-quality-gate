@@ -26,6 +26,7 @@ def parse_package(text: str) -> Dict[str, Any]:
         "always_packs": [],
         "local_rules": [],
         "duplication": True,
+        "duplication_max_pct": 3.0,
         "complexity": True,
         "complexity_threshold": 15,
         "coverage": True,
@@ -85,8 +86,16 @@ def parse_package(text: str) -> Dict[str, Any]:
                     i += 1
                 pkg["local_rules"] = _simple_yaml_list(block)
                 continue
-        if section == "duplication" and "enabled:" in stripped:
-            pkg["duplication"] = "true" in stripped.lower()
+        if section == "duplication":
+            if "enabled:" in stripped:
+                pkg["duplication"] = "true" in stripped.lower()
+            if "max_pct_new_code:" in stripped:
+                try:
+                    pkg["duplication_max_pct"] = float(
+                        stripped.split(":", 1)[1].strip()
+                    )
+                except ValueError:
+                    pass
         if section == "complexity":
             if "enabled:" in stripped:
                 pkg["complexity"] = "true" in stripped.lower()

@@ -1,0 +1,50 @@
+# Go security hotspots (Sonar-parity).
+rules:
+  - id: agentic.go.security.unsafe-sql
+    message: >
+      SQL built with fmt.Sprintf / string concat is an injection hotspot.
+      Use parameterized queries (db.Query context + placeholders).
+    languages: [go]
+    severity: ERROR
+    metadata:
+      category: security
+      cwe: ["CWE-89"]
+      agentic_fix: |
+        (1) Use placeholders ($1 / ?) (2) never fmt.Sprintf user input into SQL
+    pattern-either:
+      - pattern: $DB.Query("..." + $X, ...)
+      - pattern: $DB.Query(fmt.Sprintf(...), ...)
+      - pattern: $DB.Exec(fmt.Sprintf(...), ...)
+      - pattern: $DB.QueryContext($CTX, fmt.Sprintf(...), ...)
+
+  - id: agentic.go.security.command-injection
+    message: >
+      exec.Command with a shell (bash/sh -c) and variable input is a
+      command-injection hotspot.
+    languages: [go]
+    severity: ERROR
+    metadata:
+      category: security
+      cwe: ["CWE-78"]
+      agentic_fix: |
+        (1) Prefer exec.Command(bin, args...) without a shell
+        (2) Allow-list binaries and validate args
+    pattern-either:
+      - pattern: exec.Command("bash", "-c", $CMD, ...)
+      - pattern: exec.Command("sh", "-c", $CMD, ...)
+      - pattern: exec.CommandContext($CTX, "bash", "-c", $CMD, ...)
+      - pattern: exec.CommandContext($CTX, "sh", "-c", $CMD, ...)
+
+  - id: agentic.go.security.weak-hash
+    message: >
+      MD5 / SHA-1 are weak for security-sensitive hashing. Use sha256 or custom KDF.
+    languages: [go]
+    severity: ERROR
+    metadata:
+      category: security
+      cwe: ["CWE-328"]
+    pattern-either:
+      - pattern: md5.New()
+      - pattern: md5.Sum(...)
+      - pattern: sha1.New()
+      - pattern: sha1.Sum(...)

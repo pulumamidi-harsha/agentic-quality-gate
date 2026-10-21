@@ -1,0 +1,40 @@
+# Java / Kotlin-adjacent security hotspots (Sonar-parity).
+rules:
+  - id: agentic.java.security.runtime-exec
+    message: >
+      Runtime.exec / ProcessBuilder with unsanitized input is a command-injection
+      hotspot. Prefer argument lists and allow-listed binaries.
+    languages: [java]
+    severity: ERROR
+    metadata:
+      category: security
+      cwe: ["CWE-78"]
+      agentic_fix: |
+        (1) Use ProcessBuilder with a List of args (2) never concat user input
+    pattern-either:
+      - pattern: Runtime.getRuntime().exec($CMD)
+      - pattern: Runtime.getRuntime().exec($CMD, ...)
+      - pattern: new ProcessBuilder($CMD, ...)
+
+  - id: agentic.java.security.script-engine-eval
+    message: >
+      ScriptEngine.eval is dynamic code execution — untrusted input can RCE.
+    languages: [java]
+    severity: ERROR
+    metadata:
+      category: security
+      cwe: ["CWE-95"]
+    pattern: $ENGINE.eval($CODE)
+
+  - id: agentic.java.security.weak-hash
+    message: >
+      MD5 / SHA-1 MessageDigest is weak for security-sensitive hashing.
+    languages: [java]
+    severity: ERROR
+    metadata:
+      category: security
+      cwe: ["CWE-328"]
+    pattern-either:
+      - pattern: MessageDigest.getInstance("MD5")
+      - pattern: MessageDigest.getInstance("SHA-1")
+      - pattern: MessageDigest.getInstance("SHA1")

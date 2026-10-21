@@ -1,6 +1,7 @@
 # agentic-quality-gate
 
-**SonarQube replacement for PRs** — Semgrep hotspots, complexity, duplication, coverage, peer-style line comments.
+**SonarQube replacement for PRs** — multi-language Semgrep hotspots, Sonar-style
+duplication %, complexity, coverage, peer-style line comments.
 
 **No AI.** Completely isolated from [`agentic-review`](https://github.com/pulumamidi-harsha/agentic-review).
 
@@ -15,11 +16,21 @@ Consumer repos add **two caller YAML files** if they want both — never one com
 
 ## What it runs (PR-scoped)
 
-- Semgrep via `semgrep` CLI (not `python -m`) + package rules: eval, XSS, secrets, cmd injection, weak hash, …
-- jscpd (duplication)
-- Lizard (complexity)
-- Coverage gate (when reports exist)
-- One short Failed-conditions summary + collapsed How-to-fix line comments (no duplicate issues table)
+- **Semgrep** (`semgrep` CLI) — language packs for top enterprise stacks + local hotspot rules (JS/TS, Python, Go, Java, Terraform, C#, Ruby, PHP, Docker, Bash, …)
+- **jscpd** — block findings + **Duplication on New Code %** (Sonar default ≤ 3%)
+- **Lizard** — cyclomatic complexity
+- **Coverage** — when lcov/cobertura/istanbul reports exist
+- Compact Failed-conditions summary + collapsed How-to-fix line comments
+
+## Stacks covered (org-scale)
+
+Language packs are selected from PR files. Common stacks include:
+
+TypeScript/JavaScript/React/Node, Python (Django/Flask), Go, Java/Spring, Kotlin,
+C#/.NET, Ruby/Rails, PHP, Rust, Scala, Swift, C/C++, Dart, Terraform, Docker,
+Kubernetes/Helm, Ansible, CloudFormation, Bash, SQL, PowerShell, and more.
+
+Registry packs that 404 are skipped per-pack; **local hotspot rules always run**.
 
 ## Caller (minimal)
 
@@ -29,6 +40,7 @@ See [`examples/caller-workflow.yml`](examples/caller-workflow.yml). Pin `uses:` 
 
 - Engines / packs: `config/packages/default.yml` + `config/packages/default/rules/`
 - Pass/fail: `config/quality-gate.yml` (`AGENTIC_GATE_MODE=advisory|soft_fail|hard_fail`)
+- Duplication density: `JSCPD_MAX_PCT_NEW_CODE` (default `3`)
 
 ## Fail-closed scanners
 

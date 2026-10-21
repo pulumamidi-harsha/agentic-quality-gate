@@ -30,23 +30,36 @@ changed = []
 if os.path.isfile(changed_path):
     changed = [strip_repo_rel(ln) for ln in open(changed_path) if ln.strip()]
 
-# Extension → language key (Semgrep config family)
+# Extension → language key (Semgrep config family) — top enterprise stacks
 EXT = {
     ".js": "javascript", ".jsx": "javascript", ".mjs": "javascript", ".cjs": "javascript",
     ".ts": "typescript", ".tsx": "typescript",
-    ".py": "python",
+    ".vue": "vue", ".svelte": "javascript",
+    ".py": "python", ".pyi": "python",
     ".go": "go",
-    ".java": "java", ".kt": "kotlin",
-    ".rb": "ruby",
+    ".java": "java",
+    ".kt": "kotlin", ".kts": "kotlin",
+    ".rb": "ruby", ".erb": "ruby",
     ".php": "php",
-    ".cs": "csharp",
+    ".cs": "csharp", ".fs": "csharp",
     ".rs": "rust",
-    ".scala": "scala",
+    ".scala": "scala", ".sc": "scala",
     ".swift": "swift",
-    ".tf": "terraform", ".hcl": "terraform",
+    ".c": "c", ".h": "c",
+    ".cpp": "cpp", ".cc": "cpp", ".cxx": "cpp", ".hpp": "cpp",
+    ".dart": "dart",
+    ".ex": "elixir", ".exs": "elixir",
+    ".hs": "haskell",
+    ".pl": "perl", ".pm": "perl",
+    ".r": "r", ".R": "r",
+    ".ps1": "powershell", ".psm1": "powershell",
+    ".groovy": "groovy", ".gradle": "groovy",
+    ".sql": "sql",
+    ".tf": "terraform", ".hcl": "terraform", ".tfvars": "terraform",
+    ".bicep": "bicep",
     ".yaml": "yaml", ".yml": "yaml",
     ".json": "json",
-    ".sh": "bash", ".bash": "bash",
+    ".sh": "bash", ".bash": "bash", ".zsh": "bash",
     ".dockerfile": "docker",
 }
 
@@ -71,8 +84,34 @@ for p in changed:
         continue
     path = Path(p)
     name = path.name.lower()
+    pl = p.replace("\\", "/")
     if name == "dockerfile" or name.startswith("dockerfile."):
         langs.add("docker")
+        code_files.append(p)
+        continue
+    if name in {"chart.yaml", "chart.yml"} or "/templates/" in f"/{pl}" and name.endswith((".yaml", ".yml")):
+        langs.add("helm")
+        langs.add("kubernetes")
+        code_files.append(p)
+        continue
+    if name in {"deployment.yaml", "deployment.yml", "statefulset.yaml", "daemonset.yaml",
+                "cronjob.yaml", "ingress.yaml", "service.yaml"} or pl.endswith(
+        (".k8s.yaml", ".k8s.yml")
+    ):
+        langs.add("kubernetes")
+        code_files.append(p)
+        continue
+    if name in {"playbook.yml", "playbook.yaml", "site.yml", "site.yaml"} or "/roles/" in f"/{pl}":
+        if name.endswith((".yml", ".yaml")):
+            langs.add("ansible")
+            code_files.append(p)
+            continue
+    if name.endswith((".template", ".template.json")) or "cloudformation" in pl.lower():
+        langs.add("cloudformation")
+        code_files.append(p)
+        continue
+    if name == "nginx.conf" or name.endswith(".nginx"):
+        langs.add("nginx")
         code_files.append(p)
         continue
     ext = path.suffix.lower()
@@ -91,9 +130,16 @@ markers = [
     ("go.mod", "go"),
     ("pom.xml", "java"),
     ("build.gradle", "java"),
+    ("build.gradle.kts", "kotlin"),
     ("Cargo.toml", "rust"),
     ("Gemfile", "ruby"),
     ("composer.json", "php"),
+    ("*.csproj", "csharp"),
+    ("Package.swift", "swift"),
+    ("mix.exs", "elixir"),
+    ("pubspec.yaml", "dart"),
+    ("main.tf", "terraform"),
+    ("terragrunt.hcl", "terraform"),
 ]
 
 repo_langs = set()

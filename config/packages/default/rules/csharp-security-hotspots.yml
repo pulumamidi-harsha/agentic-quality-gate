@@ -1,0 +1,31 @@
+# C# / .NET security hotspots.
+rules:
+  - id: agentic.csharp.security.process-start
+    message: >
+      Process.Start with unsanitized input is a command-injection hotspot.
+    languages: [csharp]
+    severity: ERROR
+    metadata:
+      category: security
+      cwe: ["CWE-78"]
+      agentic_fix: |
+        (1) Prefer ProcessStartInfo with Arguments as a vetted string
+        (2) Never pass raw user input as FileName/Arguments
+    pattern-either:
+      - pattern: Process.Start($CMD)
+      - pattern: Process.Start($CMD, $ARGS)
+      - pattern: new ProcessStartInfo($CMD)
+
+  - id: agentic.csharp.security.weak-hash
+    message: >
+      MD5 / SHA1 are weak for security-sensitive hashing. Use SHA256+ or a KDF.
+    languages: [csharp]
+    severity: ERROR
+    metadata:
+      category: security
+      cwe: ["CWE-328"]
+    pattern-either:
+      - pattern: MD5.Create()
+      - pattern: SHA1.Create()
+      - pattern: new MD5CryptoServiceProvider()
+      - pattern: new SHA1CryptoServiceProvider()

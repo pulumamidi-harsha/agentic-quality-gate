@@ -30,6 +30,7 @@ def load_gate_config(gate_yml: Path) -> Dict[str, Any]:
         "fail_severities": ["error"],
         "fail_on_secrets": True,
         "warn_duplication": True,
+        "duplication_pct_threshold": 3.0,
         "warn_coverage": True,
         "coverage_threshold": 80.0,
         "complexity_threshold": 15,
@@ -69,8 +70,11 @@ def load_gate_config(gate_yml: Path) -> Dict[str, Any]:
                     s.strip().strip("\"'") for s in m.group(1).split(",") if s.strip()
                 ]
         if section == "warn_if":
-            if "new_duplication_blocks" in line:
+            if "new_duplication_pct" in line or "new_duplication_blocks" in line:
                 cfg["warn_duplication"] = True
+                m = re.search(r">\s*(\d+(?:\.\d+)?)", line)
+                if m and "duplication_pct" in line:
+                    cfg["duplication_pct_threshold"] = float(m.group(1))
             if "changed_file_coverage_pct" in line:
                 cfg["warn_coverage"] = True
                 m = re.search(r"<\s*(\d+(?:\.\d+)?)", line)
@@ -81,6 +85,12 @@ def load_gate_config(gate_yml: Path) -> Dict[str, Any]:
                 m = re.search(r">\s*(\d+)", line)
                 if m:
                     cfg["complexity_threshold"] = int(m.group(1))
+    env_dup = (os.environ.get("JSCPD_MAX_PCT_NEW_CODE") or "").strip()
+    if env_dup:
+        try:
+            cfg["duplication_pct_threshold"] = float(env_dup)
+        except ValueError:
+            pass
     # Env override for gradual rollout without editing hub YAML per caller
     env_mode = (os.environ.get("AGENTIC_GATE_MODE") or "").strip()
     if env_mode in {"advisory", "soft_fail", "hard_fail"}:
@@ -114,9 +124,19 @@ def evaluate(
         if f.get("severity") in (cfg.get("fail_severities") or ["error"])
         and f.get("category") not in metric_cats
     ]
-    dup_findings = [
-        f for f in in_diff if f.get("category") == "duplication"
+    dup_blocks = [
+        f
+        for f in in_diff
+        if f.get("category") == "duplication" and f.get("rule_id") == "duplication"
     ]
+    dup_density_finding = next(
+        (f for f in in_diff if f.get("rule_id") == "duplication_density"),
+        None,
+    )
+    dup_over_threshold = bool(
+        dup_density_finding and (dup_density_finding.get("raw") or {}).get("over_threshold")
+    )
+    dup_findings = dup_blocks  # line-comment blocks; gate primary is density %
     cov_findings = [
         f
         for f in in_diff
@@ -157,7 +177,14 @@ def evaluate(
         )
 
     if apply_dup_cov:
-        if cfg.get("warn_duplication") and dup_findings:
+        if cfg.get("warn_duplication") and dup_over_threshold and dup_density_finding:
+            raw = dup_density_finding.get("raw") or {}
+            warn_reasons.append(
+                f"duplication on new code {raw.get('duplication_pct')}% "
+                f"(required ≤ {cfg.get('duplication_pct_threshold', 3)}%)"
+            )
+        elif cfg.get("warn_duplication") and dup_findings and not dup_density_finding:
+            # Legacy fallback when density finding missing
             warn_reasons.append(
                 f"{len(dup_findings)} duplication block(s) touching the PR"
             )
@@ -246,7 +273,10 @@ def evaluate(
             "secrets": len(secrets_in_diff),
             "security_hotspots": len(security_hotspots),
             "scanner_failures": len(tooling),
-            "duplication": len(dup_findings),
+            "duplication": len(dup_blocks),
+            "duplication_pct": (dup_density_finding or {}).get("raw", {}).get(
+                "duplication_pct"
+            ),
             "coverage": len(cov_findings),
             "complexity": len(complexity),
         },
@@ -302,7 +332,17 @@ def _condition_lines(result: Dict[str, Any], findings: List[Dict[str, Any]]) -> 
                 )
             else:
                 out.append(f"- {mark_fail} {f.get('message')}")
-    if c.get("duplication", 0) > 0:
+    dens = next(
+        (f for f in findings if f.get("rule_id") == "duplication_density"),
+        None,
+    )
+    if dens and (dens.get("raw") or {}).get("over_threshold"):
+        raw = dens.get("raw") or {}
+        out.append(
+            f"- {mark_fail} Duplication on New Code **{raw.get('duplication_pct')}%** "
+            f"(required ≤ **{raw.get('threshold_pct', 3)}%**)"
+        )
+    elif c.get("duplication", 0) > 0 and not dens:
         out.append(
             f"- {mark_fail} **{c['duplication']}** duplication block(s) on new code "
             f"(required ≤ **0**)"

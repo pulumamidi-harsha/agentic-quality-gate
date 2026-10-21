@@ -39,6 +39,10 @@ if [[ "$COV_ON" == "true" ]]; then
   export COVERAGE_THRESHOLD_PCT
   COVERAGE_THRESHOLD_PCT=$(jq -r '.coverage_threshold // 80' "$PKG_JSON")
 fi
+if [[ "$DUP_ON" == "true" ]]; then
+  export JSCPD_MAX_PCT_NEW_CODE
+  JSCPD_MAX_PCT_NEW_CODE=$(jq -r '.duplication_max_pct // 3' "$PKG_JSON")
+fi
 
 run_engine() {
   local name="$1"

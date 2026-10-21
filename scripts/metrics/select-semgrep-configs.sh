@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 # Build Semgrep config list from quality-gate package + detected languages.
+# Designed for org-scale (~10k repos): broad registry packs + local hotspot rules.
+# Unknown/404 packs are skipped per-pack in scan-semgrep.sh (fail-open on registry).
 set -euo pipefail
 # shellcheck source=../common.sh
 source "$(cd "$(dirname "$0")/.." && pwd)/common.sh"
@@ -30,22 +32,47 @@ pkg = json.load(open(pkg_path))
 langs = set(data.get("languages") or [])
 root = Path(pipeline)
 
+# Top stacks for enterprise multi-repo rollout. Registry 404s are skipped at scan time.
 PACKS = {
-    "javascript": ["p/javascript", "p/typescript"],
-    "typescript": ["p/typescript", "p/javascript"],
-    "python": ["p/python"],
+    # Web / Node
+    "javascript": ["p/javascript", "p/typescript", "p/nodejs", "p/react"],
+    "typescript": ["p/typescript", "p/javascript", "p/nodejs", "p/react"],
+    "vue": ["p/javascript", "p/nodejs"],
+    # Backend languages
+    "python": ["p/python", "p/django", "p/flask"],
     "go": ["p/golang"],
-    "java": ["p/java"],
-    "kotlin": ["p/kotlin"],
-    "ruby": ["p/ruby"],
+    "java": ["p/java", "p/spring"],
+    "kotlin": ["p/kotlin", "p/java"],
+    "csharp": ["p/csharp", "p/dotnet"],
+    "ruby": ["p/ruby", "p/rails"],
     "php": ["p/php"],
-    "csharp": ["p/csharp"],
     "rust": ["p/rust"],
+    "scala": ["p/scala", "p/java"],
+    "swift": ["p/swift"],
+    "c": ["p/c", "p/cpp"],
+    "cpp": ["p/cpp", "p/c"],
+    "dart": ["p/dart"],
+    "elixir": ["p/elixir"],
+    "haskell": ["p/haskell"],
+    "perl": ["p/perl"],
+    "r": ["p/r"],
+    "powershell": ["p/powershell"],
+    "groovy": ["p/java"],
+    # Data / query
+    "sql": ["p/sql"],
+    # Infra / cloud / config
     "terraform": ["p/terraform"],
     "docker": ["p/docker"],
-    # p/yaml 404s on semgrep.dev — workflow rules come from p/github-actions (always_packs)
-    "yaml": [],
+    "kubernetes": ["p/kubernetes"],
+    "helm": ["p/kubernetes"],
+    "ansible": ["p/ansible"],
+    "cloudformation": ["p/cloudformation"],
+    "bicep": ["p/csharp"],
+    "nginx": ["p/nginx"],
     "bash": ["p/bash"],
+    # YAML: Actions via always_packs; k8s when detected separately
+    "yaml": [],
+    "json": [],
 }
 
 configs = []
@@ -64,7 +91,7 @@ if pkg.get("language_packs", True):
 for pack in pkg.get("always_packs") or []:
     add(pack)
 
-# Local Semgrep rules from the quality package (e.g. GHA pin-to-SHA)
+# Local Semgrep rules from the quality package (hotspot parity across stacks)
 local_configs = []
 for rel in pkg.get("local_rules") or []:
     p = root / rel
@@ -81,6 +108,9 @@ payload = {
     "languages": sorted(langs),
     "package": pkg.get("name", "default"),
     "reason": "quality_package",
+    "packs_by_language": {
+        lang: PACKS.get(lang, []) for lang in sorted(langs)
+    },
 }
 Path(out_path).write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
 print("  Semgrep configs: " + ", ".join(configs))

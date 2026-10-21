@@ -78,6 +78,17 @@ else
   exit 1
 fi
 
-python3 "${METRICS_DIR}/normalize-jscpd.py" "$RAW" "$CHANGED" "$OUT"
-record_engine "jscpd" "ok" "report written"
+# Sonar-style density needs new-lines denominator (added lines on PR)
+NEW_LINES=0
+BASE_REF="${GITHUB_BASE_REF:-main}"
+if [[ -n "${AGENTIC_FORCE_NEW_LINES:-}" ]]; then
+  NEW_LINES="${AGENTIC_FORCE_NEW_LINES}"
+elif git rev-parse --verify "origin/${BASE_REF}" >/dev/null 2>&1; then
+  NEW_LINES=$(git diff --numstat "origin/${BASE_REF}...HEAD" 2>/dev/null \
+    | awk '{ add+=$1 } END { print add+0 }' || echo 0)
+fi
+MAX_PCT="${JSCPD_MAX_PCT_NEW_CODE:-3}"
+
+python3 "${METRICS_DIR}/normalize-jscpd.py" "$RAW" "$CHANGED" "$OUT" "$NEW_LINES" "$MAX_PCT"
+record_engine "jscpd" "ok" "report written (new_lines=${NEW_LINES}, max_pct=${MAX_PCT})"
 exit 0

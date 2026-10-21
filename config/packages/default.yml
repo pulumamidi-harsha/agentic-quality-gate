@@ -2,28 +2,32 @@
 # Metrics jobs load this file — do not wire one-off scanners in callers.
 #
 # Engines produce findings → schemas/finding.schema.json → quality-gate.yml policy.
-# Semgrep packs cover language SAST + GitHub Actions (e.g. pin actions to full SHA).
+# Semgrep: language packs (top enterprise stacks) + always_packs + local hotspot rules.
 
 name: default
 description: >
-  Standard PR quality package: security SAST, Actions hygiene, duplication,
-  complexity, and changed-file coverage.
+  Org-scale PR quality package for ~10k repos: multi-language SAST, Actions
+  hygiene, Sonar-style duplication %, complexity, and changed-file coverage.
 
 engines:
-  # Static analysis + workflow hygiene (includes unpinned Actions / mutable refs)
   semgrep:
     enabled: true
     language_packs: true
+    # Always run (language-agnostic / org hygiene)
     always_packs:
       - p/security-audit
+      - p/secrets
+      - p/owasp-top-ten
       - p/github-actions
-    # Extra Semgrep rules shipped with this package (repo-relative)
+    # Local hotspot rules (Sonar-parity) — directory scanned as a config root
     local_rules:
       - config/packages/default/rules
 
   duplication:
     enabled: true
     engine: jscpd
+    # Sonar default: Duplicated Lines (%) on New Code ≤ 3
+    max_pct_new_code: 3
 
   complexity:
     enabled: true
@@ -33,4 +37,3 @@ engines:
   coverage:
     enabled: true
     threshold_pct: 80
-    # lcov / cobertura / istanbul discovered from checks artifacts

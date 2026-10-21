@@ -16,6 +16,7 @@ on_pull_request:
     - new_findings_severity: [error]
 
   warn_if:
-    - new_duplication_blocks: "> 0"
+    # Sonar-parity: Duplicated Lines (%) on New Code (default ≤ 3%)
+    - new_duplication_pct: "> 3"
     - changed_file_coverage_pct: "< 80"
     - complexity_increase: "> 15"

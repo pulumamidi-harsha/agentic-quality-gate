@@ -1,0 +1,86 @@
+# Ruby / PHP / Shell / Docker hotspots — common stacks across org repos.
+rules:
+  - id: agentic.ruby.security.eval
+    message: Dynamic eval in Ruby is a code-injection hotspot.
+    languages: [ruby]
+    severity: ERROR
+    metadata:
+      category: security
+      cwe: ["CWE-95"]
+    pattern-either:
+      - pattern: eval(...)
+      - pattern: Kernel.eval(...)
+
+  - id: agentic.ruby.security.system
+    message: Kernel.system / `backticks` with interpolation is a command-injection hotspot.
+    languages: [ruby]
+    severity: ERROR
+    metadata:
+      category: security
+      cwe: ["CWE-78"]
+    pattern-either:
+      - pattern: system($CMD)
+      - pattern: exec($CMD)
+      - pattern: system($CMD, ...)
+      - pattern: Open3.capture2($CMD, ...)
+      - pattern: Open3.capture3($CMD, ...)
+
+  - id: agentic.php.security.eval
+    message: eval() in PHP is a code-injection hotspot.
+    languages: [php]
+    severity: ERROR
+    metadata:
+      category: security
+      cwe: ["CWE-95"]
+    pattern: eval(...)
+
+  - id: agentic.php.security.shell-exec
+    message: shell_exec / exec / passthru with user input is a command-injection hotspot.
+    languages: [php]
+    severity: ERROR
+    metadata:
+      category: security
+      cwe: ["CWE-78"]
+    pattern-either:
+      - pattern: shell_exec(...)
+      - pattern: exec(...)
+      - pattern: passthru(...)
+      - pattern: system(...)
+      - pattern: popen(...)
+
+  - id: agentic.bash.security.eval
+    message: eval with expansions is a shell injection hotspot.
+    languages: [bash]
+    severity: ERROR
+    metadata:
+      category: security
+      cwe: ["CWE-95"]
+    pattern: eval $X
+
+  - id: agentic.bash.security.curl-pipe-sh
+    message: >
+      curl|sh / wget|sh installs unpinned remote code — supply-chain hotspot.
+    languages: [bash]
+    severity: ERROR
+    metadata:
+      category: security
+      cwe: ["CWE-494"]
+      agentic_fix: |
+        (1) Download, verify checksum/signature, then run (2) pin versions
+    pattern-either:
+      - pattern: curl ... | sh
+      - pattern: curl ... | bash
+      - pattern: wget ... | sh
+      - pattern: wget ... | bash
+
+  - id: agentic.docker.security.privileged
+    message: privileged / host network in Docker is a container-escape hotspot.
+    languages: [dockerfile, docker]
+    severity: WARNING
+    metadata:
+      category: security
+      cwe: ["CWE-250"]
+    pattern-either:
+      - pattern: |
+          --privileged
+      - pattern: privileged=true
