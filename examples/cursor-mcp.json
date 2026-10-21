@@ -1,0 +1,16 @@
+{
+  "mcpServers": {
+    "agentic-quality-gate": {
+      "command": "uvx",
+      "args": [
+        "--from",
+        "${env:HOME}/.cursor/agentic-quality-gate/mcp",
+        "aqg-mcp"
+      ],
+      "env": {
+        "AGENTIC_QUALITY_GATE_HOME": "${env:HOME}/.cursor/agentic-quality-gate",
+        "AGENTIC_QUALITY_GATE_CACHE": "${env:HOME}/.cache/agentic-quality-gate"
+      }
+    }
+  }
+}

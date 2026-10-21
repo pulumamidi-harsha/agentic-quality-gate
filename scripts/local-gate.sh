@@ -82,8 +82,11 @@ export PIPELINE_DIR
 export GITHUB_BASE_REF="$BASE_REF"
 export AGENTIC_GATE_MODE="${AGENTIC_GATE_MODE:-advisory}"
 export AGENTIC_TMP="${AGENTIC_TMP:-${REPO_ROOT}/.agentic-quality-gate/tmp}"
-mkdir -p "$AGENTIC_TMP"
-rm -rf "${AGENTIC_TMP:?}/"*
+# Persistent Semgrep venv in user cache (no admin; reused across runs)
+export AGENTIC_SEMGREP_PREFIX="${AGENTIC_SEMGREP_PREFIX:-${HOME}/.cache/agentic-quality-gate/semgrep-prefix}"
+mkdir -p "$AGENTIC_TMP" "$(dirname "$AGENTIC_SEMGREP_PREFIX")"
+# Clean job artifacts only — do not wipe the Semgrep cache
+find "$AGENTIC_TMP" -mindepth 1 -maxdepth 1 ! -name 'semgrep-prefix' -exec rm -rf {} + 2>/dev/null || true
 mkdir -p "$AGENTIC_TMP"
 echo '{"engines":{},"ok":true,"failed_engines":[]}' > "${AGENTIC_TMP}/engine-status.json"
 

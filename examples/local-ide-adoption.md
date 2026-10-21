@@ -1,75 +1,64 @@
-# Adopt local / IDE quality gate (app repos)
+# IDE adoption (Cursor) — app repos
 
-Use this in application repos (e.g. `dso-os-frontend`) so developers see
-Sonar-replacement findings **before** opening a PR.
+Goal: developers see quality-gate findings **before** opening a PR, with
+**almost no setup pain** and **no admin rights**.
 
-CI (`PR Quality Gate` workflow) remains the merge authority.
+## Recommended (all developers)
 
-## Prerequisites
-
-- `git`, `bash`, `python3`, `jq`, `node`/`npx` (jscpd), network for first Semgrep install
-- Clone or pin [`agentic-quality-gate`](https://github.com/pulumamidi-harsha/agentic-quality-gate)
-
-## Option A — Cursor / VS Code task
-
-1. Clone the hub next to the app (or set `AGENTIC_QUALITY_GATE_HOME`):
-
-   ```bash
-   export AGENTIC_QUALITY_GATE_HOME=/path/to/agentic-quality-gate
-   ```
-
-2. Copy [`vscode-tasks.json`](vscode-tasks.json) into the app’s `.vscode/tasks.json`
-   (merge with existing tasks if needed).
-
-3. In Cursor: **Terminal → Run Task… → “PR Quality Gate (local)”**
-
-4. Or run from the app root:
-
-   ```bash
-   bash "$AGENTIC_QUALITY_GATE_HOME/scripts/local-gate.sh"
-   bash "$AGENTIC_QUALITY_GATE_HOME/scripts/local-gate.sh" --strict
-   ```
-
-## Option B — pre-commit hook
-
-1. Copy hooks from [`pre-commit-config.yaml`](pre-commit-config.yaml) into the app’s
-   `.pre-commit-config.yaml` and **pin `rev` to a full SHA**.
-
-2. Install:
-
-   ```bash
-   pip install pre-commit
-   pre-commit install
-   ```
-
-3. On each commit, staged files are scanned (advisory). To block commits:
-
-   ```yaml
-   args: [--staged, --strict]
-   ```
-
-## Option C — one-off CLI (no IDE config)
+### 1. One-time laptop setup
 
 ```bash
-cd /path/to/dso-os-frontend
-bash /path/to/agentic-quality-gate/scripts/local-gate.sh --base main
+git clone https://github.com/pulumamidi-harsha/agentic-quality-gate.git
+cd agentic-quality-gate
+bash scripts/install-cursor.sh
+# Restart Cursor
 ```
 
-Add `.agentic-quality-gate/` to the app `.gitignore` (local artifacts).
+- Installs under `~/.cursor/agentic-quality-gate` (user home)
+- Registers MCP in `~/.cursor/mcp.json`
+- Caches tools under `~/.cache/agentic-quality-gate`
+- No `sudo`, no corporate marketplace extension
 
-## What is checked locally
+### 2. Daily use
 
-| Engine   | Local | Notes                          |
-|----------|-------|--------------------------------|
-| Semgrep  | yes   | Same package rules as CI       |
-| jscpd %  | yes   | Duplication on new code ≤ 3%   |
-| Lizard   | yes   | Complexity                     |
-| Coverage | no    | CI-only (needs lcov from tests)|
+Open your app (e.g. `dso-os-frontend`) in Cursor and ask Agent:
+
+> Run the quality gate on my changes
+
+Agent uses MCP `run_quality_gate` → Semgrep hotspots, duplication %, complexity
+→ explains What / Why / How to fix.
+
+### 3. Optional auto-trigger in a repo
+
+```bash
+mkdir -p .cursor/skills/quality-gate
+cp /path/to/agentic-quality-gate/examples/cursor-skill/SKILL.md \
+  .cursor/skills/quality-gate/
+```
+
+### 4. Keep PR CI
+
+Do **not** remove `.github/workflows/quality-gate.yml`. CI remains merge authority.
 
 ## Pilot checklist (`dso-os-frontend`)
 
-- [ ] Set `AGENTIC_QUALITY_GATE_HOME` or sibling clone
-- [ ] Add VS Code/Cursor task (optional)
-- [ ] Add pre-commit hook pinned to hub SHA (optional)
-- [ ] Ignore `.agentic-quality-gate/`
-- [ ] Keep `.github/workflows/quality-gate.yml` for PR CI
+- [ ] Each developer ran `install-cursor.sh` once + restarted Cursor
+- [ ] Ask Agent: “Run the quality gate on my changes” on a branch with the seed file
+- [ ] Optional: commit `.cursor/skills/quality-gate/SKILL.md`
+- [ ] PR workflow still pinned to hub SHA
+
+## What is covered vs PR CI
+
+| Check | Cursor MCP | PR CI |
+|-------|------------|-------|
+| Semgrep hotspots | yes | yes |
+| Duplication % | yes | yes |
+| Complexity | yes | yes |
+| Coverage | no | when lcov present |
+| PR comments | no (chat) | yes |
+
+## Advanced (not required)
+
+- CLI: `scripts/local-gate.sh`
+- pre-commit: `examples/pre-commit-config.yaml`
+- VS Code tasks: `examples/vscode-tasks.json`

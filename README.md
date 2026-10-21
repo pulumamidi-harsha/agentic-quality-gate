@@ -12,67 +12,67 @@ duplication %, complexity, coverage, peer-style line comments.
 | **agentic-quality-gate** (this) | `PR Quality Gate` | Sonar replacement only |
 | **agentic-review** | `AI PR Review` | AI review only |
 
-Consumer repos add **two caller YAML files** if they want both — never one combined job.
+## IDE / during coding (Cursor) — recommended
 
-## What it runs (PR-scoped)
+Problem statement includes checks **while coding** in the **IDE**, not only after a PR.
+Use Cursor’s Agent + MCP so setup stays **easy and admin-free** (everything under your home directory).
 
-- **Semgrep** (`semgrep` CLI) — language packs for top enterprise stacks + local hotspot rules (JS/TS, Python, Go, Java, Terraform, C#, Ruby, PHP, Docker, Bash, …)
-- **jscpd** — block findings + **Duplication on New Code %** (Sonar default ≤ 3%)
-- **Lizard** — cyclomatic complexity
-- **Coverage** — when lcov/cobertura/istanbul reports exist
-- Compact Failed-conditions summary + collapsed How-to-fix line comments
-
-## Stacks covered (org-scale)
-
-Language packs are selected from PR files. Common stacks include:
-
-TypeScript/JavaScript/React/Node, Python (Django/Flask), Go, Java/Spring, Kotlin,
-C#/.NET, Ruby/Rails, PHP, Rust, Scala, Swift, C/C++, Dart, Terraform, Docker,
-Kubernetes/Helm, Ansible, CloudFormation, Bash, SQL, PowerShell, and more.
-
-Registry packs that 404 are skipped per-pack; **local hotspot rules always run**.
-
-## Caller (minimal)
-
-See [`examples/caller-workflow.yml`](examples/caller-workflow.yml). Pin `uses:` and `pipeline_ref` to a **full SHA**.
-
-## Local / IDE (before the PR)
-
-Same engines as CI (Semgrep, duplication %, complexity) — run while coding so
-findings show up **before** you open a PR. Coverage stays CI-only.
+### Setup (once per laptop — no admin)
 
 ```bash
-# from your application repo
-export AGENTIC_QUALITY_GATE_HOME=/path/to/agentic-quality-gate
-bash "$AGENTIC_QUALITY_GATE_HOME/scripts/local-gate.sh"
-bash "$AGENTIC_QUALITY_GATE_HOME/scripts/local-gate.sh" --staged    # pre-commit
-bash "$AGENTIC_QUALITY_GATE_HOME/scripts/local-gate.sh" --strict    # exit 1 on findings
+# from a clone of this hub
+bash scripts/install-cursor.sh
+# Restart Cursor
 ```
 
-| Integration | Example |
-|-------------|---------|
-| Terminal / Cursor | `scripts/local-gate.sh` |
-| VS Code / Cursor task | [`examples/vscode-tasks.json`](examples/vscode-tasks.json) |
-| pre-commit | [`examples/pre-commit-config.yaml`](examples/pre-commit-config.yaml) |
-| App adoption guide | [`examples/local-ide-adoption.md`](examples/local-ide-adoption.md) |
+That copies the hub to `~/.cursor/agentic-quality-gate` and registers the MCP server in
+`~/.cursor/mcp.json`. Tools cache under `~/.cache/agentic-quality-gate`.
 
-Advisory by default (exit 0). CI remains the merge authority.
+### Daily use
 
-Requires: `git`, `bash`, `python3`, `jq`, `npx` (jscpd). First Semgrep run may download packs.
+In Cursor Agent, on any app repo:
+
+> Run the quality gate on my changes
+
+Agent calls MCP tool `run_quality_gate` → same Semgrep / duplication % / complexity
+engines as PR CI → explains findings with What / Why / How to fix.
+
+Optional: copy [`examples/cursor-skill/SKILL.md`](examples/cursor-skill/SKILL.md) into
+the app’s `.cursor/skills/quality-gate/` so Agent auto-triggers on “pre-PR” asks.
+
+### Why not a classic VS Code extension?
+
+Corporate laptops often block marketplace installs or need admin. **MCP + Agent** is the
+agentic path in the problem statement (explain / prioritize in chat) and installs with
+user-space tools only (`uvx` / `pip --user` / home cache).
+
+## PR CI (merge authority)
+
+Thin caller in each app — see [`examples/caller-workflow.yml`](examples/caller-workflow.yml).
+Pin `uses:` and `pipeline_ref` to a **full SHA**.
+
+## What it runs
+
+| Surface | Semgrep | Duplication % | Complexity | Coverage |
+|---------|---------|---------------|------------|----------|
+| Cursor MCP / local | yes | yes | yes | no (CI-only) |
+| GitHub PR workflow | yes | yes | yes | when lcov present |
+
+Stacks: TypeScript/JavaScript/React/Node, Python, Go, Java/Spring, Kotlin, C#, Ruby, PHP,
+Rust, Terraform, Docker, Kubernetes/Helm, Ansible, Bash, SQL, and more.
 
 ## Policy
 
-- Engines / packs: `config/packages/default.yml` + `config/packages/default/rules/`
+- Engines: `config/packages/default.yml` + `config/packages/default/rules/`
 - Pass/fail: `config/quality-gate.yml` (`AGENTIC_GATE_MODE=advisory|soft_fail|hard_fail`)
-- Duplication density: `JSCPD_MAX_PCT_NEW_CODE` (default `3`)
+- Fail-closed in CI if an enabled scanner cannot run
 
-## Fail-closed scanners
+## Advanced (optional)
 
-If Semgrep / jscpd / lizard is **enabled** and has PR code to scan, but install or
-scan fails (no usable output), the **job fails** even in `advisory` mode — so an
-empty scan is never treated as a clean PR. Intentional skips (docs-only PRs, no
-code files) still pass.
+Power users / automation can still call [`scripts/local-gate.sh`](scripts/local-gate.sh)
+or [`examples/pre-commit-config.yaml`](examples/pre-commit-config.yaml). Not required for
+normal Cursor developers.
 
-## Skip
+## Skip (CI)
 
 PR labels: `skip-quality-gate`, `skip-ai-review`, or `no-review`.

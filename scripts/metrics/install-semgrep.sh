@@ -10,7 +10,8 @@ set -euo pipefail
 source "$(cd "$(dirname "$0")/.." && pwd)/common.sh"
 
 SEMGREP_VERSION="${SEMGREP_VERSION:-1.97.0}"
-SEMGREP_PREFIX="${AGENTIC_TMP}/semgrep-prefix"
+# Prefer persistent user cache (Cursor / local) — no admin, survives tmp cleans
+SEMGREP_PREFIX="${AGENTIC_SEMGREP_PREFIX:-${AGENTIC_TMP}/semgrep-prefix}"
 SEMGREP_VENV="${SEMGREP_PREFIX}/venv"
 SEMGREP_ENV="${AGENTIC_TMP}/semgrep.env"
 

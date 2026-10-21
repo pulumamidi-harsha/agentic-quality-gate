@@ -1,0 +1,17 @@
+[project]
+name = "aqg-mcp"
+version = "0.1.0"
+description = "Cursor MCP server for agentic-quality-gate (pre-PR Sonar-replacement checks)"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+  # mcp 2.x renames FastMCP → MCPServer; stay on 1.x until we migrate
+  "mcp>=1.2.0,<2",
+]
+
+[project.scripts]
+aqg-mcp = "aqg_mcp.server:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"

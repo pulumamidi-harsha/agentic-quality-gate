@@ -1,11 +1,8 @@
-# Example pre-commit config for application repos.
-# Copy entries into your repo's .pre-commit-config.yaml (or merge with existing hooks).
+# ADVANCED — most developers should use Cursor MCP instead:
+#   bash scripts/install-cursor.sh
 #
-# Install (once per machine):
-#   pip install pre-commit
-#   pre-commit install
-#
-# Pin `rev` to a full commit SHA of pulumamidi-harsha/agentic-quality-gate in production.
+# Example pre-commit config for application repos that still want a git hook.
+# Pin `rev` to a full commit SHA of pulumamidi-harsha/agentic-quality-gate.
 
 repos:
   - repo: https://github.com/pulumamidi-harsha/agentic-quality-gate
