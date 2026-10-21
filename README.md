@@ -12,39 +12,35 @@ duplication %, complexity, coverage, peer-style line comments.
 | **agentic-quality-gate** (this) | `PR Quality Gate` | Sonar replacement only |
 | **agentic-review** | `AI PR Review` | AI review only |
 
-## IDE / during coding (Cursor) — recommended
+## IDE / during coding — recommended (Cursor or VS Code)
 
-Problem statement includes checks **while coding** in the **IDE**, not only after a PR.
-Use Cursor’s Agent + MCP so setup stays **easy and admin-free** (everything under your home directory).
+Problem statement includes checks **while coding** in the **IDE**. Use **Agent + MCP**
+(futuristic, explains findings in chat). No admin. **You do not need to clone this repo.**
 
-### Setup (once per laptop — no admin)
+### Setup (once per laptop)
 
 ```bash
-# from a clone of this hub
-bash scripts/install-cursor.sh
-# Restart Cursor
+curl -fsSL https://raw.githubusercontent.com/pulumamidi-harsha/agentic-quality-gate/main/scripts/install-ide.sh | bash
 ```
 
-That copies the hub to `~/.cursor/agentic-quality-gate` and registers the MCP server in
-`~/.cursor/mcp.json`. Tools cache under `~/.cache/agentic-quality-gate`.
+- Installs under `~/.cursor/agentic-quality-gate` (auto git clone/update)
+- Registers Cursor MCP in `~/.cursor/mcp.json`
+- Writes VS Code template at `~/.cursor/agentic-quality-gate/examples/vscode-mcp.json`
+- Cache: `~/.cache/agentic-quality-gate`
 
 ### Daily use
 
-In Cursor Agent, on any app repo:
+| IDE | What to do |
+|-----|------------|
+| **Cursor** | Restart → open app repo → ask Agent: `Run the quality gate on my changes` |
+| **VS Code** | Copy `examples/vscode-mcp.json` → app `.vscode/mcp.json` → restart → Copilot Chat (Agent): same ask |
 
-> Run the quality gate on my changes
+Same engines as PR CI (Semgrep, duplication %, complexity). Coverage stays CI-only.
 
-Agent calls MCP tool `run_quality_gate` → same Semgrep / duplication % / complexity
-engines as PR CI → explains findings with What / Why / How to fix.
+### Why MCP + Agent (not a classic marketplace extension)?
 
-Optional: copy [`examples/cursor-skill/SKILL.md`](examples/cursor-skill/SKILL.md) into
-the app’s `.cursor/skills/quality-gate/` so Agent auto-triggers on “pre-PR” asks.
-
-### Why not a classic VS Code extension?
-
-Corporate laptops often block marketplace installs or need admin. **MCP + Agent** is the
-agentic path in the problem statement (explain / prioritize in chat) and installs with
-user-space tools only (`uvx` / `pip --user` / home cache).
+Corporate laptops often block extensions or need admin. MCP runs user-space and matches
+the problem statement (explain / prioritize in chat).
 
 ## PR CI (merge authority)
 
