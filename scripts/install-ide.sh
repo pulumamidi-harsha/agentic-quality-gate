@@ -265,7 +265,9 @@ ensure_path_rc() {
   echo "  PATH → added ~/.local/bin to ${rc}"
 }
 ensure_path_rc "${HOME}/.zshrc"
+ensure_path_rc "${HOME}/.zprofile"
 ensure_path_rc "${HOME}/.bashrc"
+ensure_path_rc "${HOME}/.bash_profile"
 # Fish (optional)
 if [[ -d "${HOME}/.config/fish" ]]; then
   FISH_CFG="${HOME}/.config/fish/config.fish"
