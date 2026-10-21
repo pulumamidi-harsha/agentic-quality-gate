@@ -2,16 +2,16 @@
 
 **SonarQube replacement for PRs** — Semgrep hotspots, complexity, duplication, coverage, peer-style line comments.
 
-No AI. Roll out independently from [`agentic-review`](https://github.com/pulumamidi-harsha/agentic-review) (AI code review).
+**No AI.** Completely isolated from [`agentic-review`](https://github.com/pulumamidi-harsha/agentic-review).
 
-## Two hubs
+## Two hubs (separate jobs)
 
-| Repo | Purpose | Roll out when |
-|------|---------|----------------|
-| **agentic-quality-gate** (this) | Quality gate / Sonar replacement | You want PR SAST + metrics without AI |
-| **agentic-review** | AI PR review (+ optional scans) | You want LLM review / Pass 1–2 |
+| Folder / repo | Workflow job | Responsibility |
+|---------------|--------------|----------------|
+| **agentic-quality-gate** (this) | `PR Quality Gate` | Sonar replacement only |
+| **agentic-review** | `AI PR Review` | AI review only |
 
-Call either or both from a consumer repo with separate thin workflows.
+Consumer repos add **two caller YAML files** if they want both — never one combined job.
 
 ## What it runs (PR-scoped)
 
