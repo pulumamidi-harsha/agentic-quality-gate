@@ -6,11 +6,7 @@ One of four hubs. The full picture is the [Agentic AppSec overview](https://gith
 
 ## What this repo does
 
-```mermaid
-flowchart LR
-    code[Your change] --> scan[Semgrep · duplication · complexity · coverage]
-    scan --> report[Report: what, why, how to fix]
-```
+![What agentic-quality-gate does](docs/flow.png)
 
 | Where you run it | What you see |
 |:-----------------|:-------------|
