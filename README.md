@@ -2,7 +2,7 @@
 
 Sonar-style checks on your change: security hotspots, secrets, duplication, complexity, and coverage. No AI in this repo.
 
-One of four hubs. The full picture is the [Agentic AppSec overview](https://github.com/bayer-int/agentic-review#readme).
+One of four hubs. The full picture is the [Agentic AppSec overview](https://github.com/pulumamidi-harsha/agentic-review#readme).
 
 ## What this repo does
 
